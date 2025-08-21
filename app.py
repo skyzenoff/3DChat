@@ -9,6 +9,14 @@ logging.basicConfig(level=logging.DEBUG)
 app = Flask(__name__)
 app.secret_key = os.environ.get("SESSION_SECRET", "3ds-discord-secret-key")
 
+# Configuration des sessions pour compatibilité 3DS
+app.config.update(
+    SESSION_COOKIE_SECURE=False,  # Permet les cookies non-HTTPS
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE='Lax',  # Plus permissif que 'Strict'
+    PERMANENT_SESSION_LIFETIME=86400  # 24 heures
+)
+
 # Stockage en mémoire
 rooms = {
     "general": {"name": "Général", "messages": []},
@@ -42,6 +50,7 @@ def login():
         username = request.form.get('username', '').strip()
         app.logger.debug(f"Username received: '{username}', length: {len(username) if username else 0}")
         if username and len(username) <= 20:
+            session.permanent = True  # Rendre la session permanente
             session['username'] = username
             connected_users.add(username)
             app.logger.debug(f"Session set for user: {username}")
