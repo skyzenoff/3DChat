@@ -48,16 +48,27 @@ L'installeur Windows configure automatiquement les variables, mais vérifiez :
 
 ## Étape 5: Compiler votre homebrew
 
-1. **Naviguer vers votre dossier :**
-   ```cmd
-   cd C:\Users\mioch\Documents\3DChat-main\3ds-homebrew
-   ```
+⚠️ **IMPORTANT:** Les dossiers avec espaces causent des problèmes !
 
-2. **Compiler :**
-   ```cmd
-   make clean
-   make
-   ```
+### Option A: Déplacer le projet (RECOMMANDÉ)
+```cmd
+# Créer un dossier simple
+mkdir C:\dev
+xcopy "votre-dossier-actuel" "C:\dev\3ds-discord" /E /I
+cd C:\dev\3ds-discord\3ds-homebrew
+```
+
+### Option B: Script Windows spécial
+```cmd
+# Dans votre dossier actuel (même avec espaces)
+build-windows.bat
+```
+
+### Option C: Make standard (si pas d'espaces)
+```cmd
+make clean  
+make
+```
 
 ## Résolution des problèmes Windows
 
