@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connexion réussie - 3DChat</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>3DChat</h1>
+        </header>
+
+        <main class="login-main">
+            <div class="login-form">
+                <h2>✓ Connexion réussie !</h2>
+                
+                <p>Bienvenue <strong>{{ user.username }}</strong> !</p>
+                
+                <div style="margin: 20px 0;">
+                    <a href="{{ url_for('index') }}" class="btn btn-primary btn-large">Accéder aux salons</a>
+                </div>
+                
+                <div style="margin: 20px 0;">
+                    <a href="{{ url_for('profile') }}" class="btn btn-small">Mon profil</a>
+                    <a href="{{ url_for('friends') }}" class="btn btn-small">Mes amis</a>
+                </div>
+                
+                <div style="margin: 20px 0;">
+                    <a href="{{ url_for('logout') }}" class="btn btn-small">Déconnexion</a>
+                </div>
+                
+                <div class="info">
+                    <p>Votre session restera active pendant 7 jours.</p>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <p>Optimisé pour Nintendo 3DS/2DS</p>
+        </footer>
+    </div>
+</body>
+</html>

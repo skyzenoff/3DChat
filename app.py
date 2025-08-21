@@ -145,7 +145,7 @@ def login():
                         print(f"Erreur DB lors de la mise à jour du statut: {e}")
                         # Continuer même si la mise à jour échoue
                     
-                    return redirect(url_for('index'))
+                    return redirect(url_for('login_success'))
                 else:
                     print("Échec de connexion: mot de passe incorrect ou utilisateur inexistant")
                     flash('Nom d\'utilisateur/email ou mot de passe incorrect')
@@ -160,13 +160,21 @@ def login():
                     session['user_id'] = 1  # ID temporaire
                     session.permanent = True
                     print("Connexion simplifiée activée")
-                    return redirect(url_for('index'))
+                    return redirect(url_for('login_success'))
                 else:
                     # Attendre un peu avant de réessayer
                     import time
                     time.sleep(0.5)
     
     return render_template('login.html')
+
+@app.route('/login_success')
+@login_required
+def login_success():
+    user = get_current_user()
+    if not user:
+        return redirect(url_for('login'))
+    return render_template('login_success.html', user=user)
 
 @app.route('/logout')
 def logout():
