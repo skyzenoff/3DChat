@@ -236,12 +236,18 @@ def index():
         # Créer quelques salons par défaut si aucun n'existe
         try:
             # Créer des salons de base s'ils n'existent pas
-            default_rooms = ['Général', 'Jeux', 'Aide']
-            for room_name in default_rooms:
-                if not Room.query.filter_by(name=room_name).first():
+            default_rooms = [
+                {'name': 'Général', 'desc': 'Discussion générale'},
+                {'name': 'Jeux', 'desc': 'Parlez de vos jeux favoris'},
+                {'name': 'Aide', 'desc': 'Entraide et support'},
+                {'name': '3DS Homebrew', 'desc': 'Développement homebrew 3DS'}
+            ]
+            
+            for room_data in default_rooms:
+                if not Room.query.filter_by(name=room_data['name']).first():
                     room = Room()
-                    room.name = room_name
-                    room.description = f"Salon {room_name}"
+                    room.name = room_data['name']
+                    room.description = room_data['desc']
                     room.owner_id = user.id if hasattr(user, 'id') else 1
                     room.is_public = True
                     db.session.add(room)
@@ -259,11 +265,12 @@ def index():
                 })
         except Exception as e2:
             print(f"Erreur création salons par défaut: {e2}")
-            # Salons par défaut si DB complètement inaccessible
+            # Forcer la création des salons par défaut
             rooms_data = [
                 {'id': 1, 'name': 'Général', 'user_count': 0, 'message_count': 0},
                 {'id': 2, 'name': 'Jeux', 'user_count': 0, 'message_count': 0},
-                {'id': 3, 'name': 'Aide', 'user_count': 0, 'message_count': 0}
+                {'id': 3, 'name': 'Aide', 'user_count': 0, 'message_count': 0},
+                {'id': 4, 'name': '3DS Homebrew', 'user_count': 0, 'message_count': 0}
             ]
     
     return render_template('index.html', rooms=rooms_data, user=user)
@@ -680,6 +687,36 @@ def get_messages(room_id):
     except Exception as e:
         print(f"Erreur get_messages: {e}")
         return ""
+
+@app.route('/leave_room/<int:room_id>')
+@login_required
+def leave_room(room_id):
+    user = get_current_user()
+    if not user or not hasattr(user, 'id'):
+        return redirect(url_for('index'))
+    
+    try:
+        room = Room.query.get(room_id)
+        if room:
+            # Retirer l'utilisateur du salon
+            member = RoomMember.query.filter_by(room_id=room_id, user_id=user.id).first()
+            if member:
+                db.session.delete(member)
+                db.session.commit()
+            
+            # Si l'utilisateur est le propriétaire d'un salon privé et qu'il n'y a plus de membres, supprimer le salon
+            if (room.owner_id == user.id and 
+                not room.is_public and 
+                room.get_member_count() == 0):
+                db.session.delete(room)
+                db.session.commit()
+    except Exception as e:
+        print(f"Erreur leave_room: {e}")
+    
+    user_param = request.args.get('user')
+    if user_param:
+        return redirect(url_for('index', user=user_param))
+    return redirect(url_for('index'))
 
 # API endpoints pour 3DS homebrew
 @app.route('/api/rooms')
