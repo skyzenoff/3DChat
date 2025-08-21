@@ -11,23 +11,25 @@
         <header>
             <div class="room-header">
                 <h1>{{ room.name }}
-                {% if room.code and room.code != None %}
-                    <span class="room-code">Code: {{ room.code }}</span>
+                {% if room.join_code and room.join_code != None %}
+                    <span class="room-code">Code: {{ room.join_code }}</span>
                 {% endif %}
                 </h1>
             </div>
             <div class="room-controls">
-                <a href="{{ url_for('index', user=username) }}" class="btn btn-small">Retour</a>
-                <a href="{{ url_for('leave_room', room_id=room_id, user=username) }}" class="btn btn-small">Quitter</a>
+                <a href="{{ url_for('index', user=user.username) }}" class="btn btn-small">Retour</a>
+                <a href="{{ url_for('leave_room', room_id=room.id, user=user.username) }}" class="btn btn-small">Quitter</a>
             </div>
         </header>
 
         <div class="room-layout">
             <div class="users-panel">
-                <h3>Connectés ({{ users|length }})</h3>
+                <h3>Connectés ({{ members|length }})</h3>
                 <div id="users-display">
-                    {% for user in users %}
-                        <span class="user-badge">{{ user }}</span>
+                    {% for member in members %}
+                        {% if member.user %}
+                            <span class="user-badge">{{ member.user.username }}</span>
+                        {% endif %}
                     {% endfor %}
                 </div>
             </div>
@@ -69,19 +71,19 @@
                             </div>
                         {% else %}
                             <div class="message">
-                                <span class="author">{{ message.username }}</span>
-                                <span class="time">{{ message.timestamp }}</span>
+                                <span class="author">{{ message.user.username if message.user else 'Utilisateur' }}</span>
+                                <span class="time">{{ message.created_at.strftime('%H:%M') }}</span>
                                 <br>
-                                {{ message.text }}
+                                {{ message.content }}
                             </div>
                         {% endif %}
                     {% endfor %}
                 </div>
 
-                <form class="message-form" method="POST" action="{{ url_for('send_message', room_id=room_id) }}">
-                    <input type="hidden" name="user" value="{{ username }}">
+                <form class="message-form" method="POST" action="{{ url_for('send_message', room_id=room.id) }}">
+                    <input type="hidden" name="user" value="{{ user.username }}">
                     <div class="form-group">
-                        <input type="text" name="message" maxlength="200" placeholder="Tapez votre message..." required>
+                        <input type="text" name="message" maxlength="500" placeholder="Tapez votre message..." required>
                         <button type="submit" class="btn btn-primary">Envoyer</button>
                     </div>
                 </form>
@@ -108,7 +110,7 @@
     <script src="{{ url_for('static', filename='script.js') }}"></script>
     <script>
         // Démarrer le polling pour ce salon
-        startPolling('{{ room_id }}', '{{ username }}');
+        startPolling('{{ room.id }}', '{{ user.username }}');
         
         {% if not (request.headers.get('User-Agent', '') and 'Nintendo 3DS' in request.headers.get('User-Agent', '')) %}
         // Fonctions pour la modal d'images (PC/Mobile seulement)
