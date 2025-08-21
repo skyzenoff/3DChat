@@ -668,6 +668,10 @@ def create_room():
             if not is_public:
                 flash(f'Salon privé créé ! Code d\'accès : {room_code}')
             
+            # Préserver le paramètre utilisateur pour 3DS
+            user_param = request.args.get('user')
+            if user_param:
+                return redirect(url_for('room', room_id=room.id, user=user_param))
             return redirect(url_for('room', room_id=room.id))
         else:
             flash('Nom de salon invalide (max 30 caractères)')
@@ -687,6 +691,10 @@ def join_private():
         # Chercher le salon avec ce code
         room = Room.query.filter_by(code=room_code, is_public=False).first()
         if room:
+            # Préserver le paramètre utilisateur pour 3DS
+            user_param = request.args.get('user')
+            if user_param:
+                return redirect(url_for('room', room_id=room.id, user=user_param))
             return redirect(url_for('room', room_id=room.id))
         
         flash('Code de salon invalide')
