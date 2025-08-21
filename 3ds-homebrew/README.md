@@ -21,15 +21,15 @@ Cette version s'adapte automatiquement à votre environnement :
 
 ## Prérequis
 
-### Pour compiler (version démo) :
-- devkitPro avec devkitARM
-- libctru (incluse avec devkitPro)
+### Pour compiler :
+- **devkitPro avec devkitARM** - Environnement de développement 3DS
+- **libctru** - Bibliothèque système 3DS (incluse avec devkitPro)
+- **Pas de dépendances externes** - HTTP et JSON natifs en C
 
-### Pour compiler (version complète future) :
-- devkitPro avec devkitARM
-- libctru  
-- libcurl (portlib) - pour les requêtes HTTP
-- json-c (portlib) - pour le parsing JSON
+### Environnements supportés :
+- **Windows** avec devkitPro installé
+- **Mac/Linux** avec devkitPro installé  
+- **Replit** en mode démonstration seulement (pas de vraie compilation)
 
 ### Pour utiliser :
 - Nintendo 3DS/2DS avec CFW (Custom Firmware)
@@ -56,33 +56,30 @@ Voir `configuration-exemple.c` pour plus d'exemples de configuration.
 
 ## Compilation
 
-### Version démo (recommandée) :
+### Version complète (recommandée) :
 ```bash
-# Installer devkitPro seulement
+# 1. Installer devkitPro
 sudo dkp-pacman -S 3ds-dev
 
-# Compiler la version démo (sans dépendances externes)
+# 2. Compiler le homebrew
+make clean
+make
+
+# Alternative avec le script
 ./build.sh
 ```
 
-### Version démo sans devkitPro :
+### Dans Replit (démonstration seulement) :
 ```bash
-# Créer les fichiers de démonstration
-./demo-compile.sh
+# Simulation de compilation (génère des fichiers de démo)
+./compile-replit.sh
 ```
 
-### Version complète (future) :
-```bash
-# Installer devkitPro
-sudo dkp-pacman -S 3ds-dev
-
-# Installer les dépendances réseau (si disponibles)
-sudo dkp-pacman -S 3ds-curl 3ds-json-c
-
-# Compiler
-make clean
-make
-```
+### Problèmes de compilation courants :
+- **"Please set DEVKITARM"** → devkitPro n'est pas installé → [Voir guide détaillé](COMPILATION-GUIDE.md)
+- **Erreurs de liens** → Vérifiez que libctru est installé  
+- **Headers manquants** → Installez 3ds-dev complètement
+- **Environnement Replit** → Utilisez `./compile-replit.sh` pour la démonstration
 
 ## Utilisation
 

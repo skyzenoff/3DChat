@@ -13,6 +13,9 @@ if [ -z "$DEVKITPRO" ]; then
     echo "   2. Installez-le: sudo dpkg -i devkitpro-pacman.amd64.deb"
     echo "   3. Installez les outils 3DS: sudo dkp-pacman -S 3ds-dev"
     echo "   4. Exportez les variables: export DEVKITPRO=/opt/devkitpro"
+    echo ""
+    echo "💡 Alternative pour Replit/développement:"
+    echo "   Utilisez ./compile-replit.sh pour une version de démonstration"
     exit 1
 fi
 
