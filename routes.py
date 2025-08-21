@@ -776,6 +776,102 @@ def end_call():
         print(f"Erreur end_call: {e}")
         return jsonify({'success': False, 'error': 'Erreur serveur'})
 
+# Stockage temporaire des sessions d'appel (en production, utiliser Redis)
+active_calls = {}
+
+@app.route('/webrtc_signal', methods=['POST'])
+@login_required
+def webrtc_signal():
+    """Gérer la signalisation WebRTC pour les appels P2P"""
+    user = get_current_user()
+    if not user or not hasattr(user, 'id'):
+        return jsonify({'success': False, 'error': 'Non authentifié'})
+    
+    try:
+        data = request.get_json()
+        signal_type = data.get('type')
+        target_user_id = data.get('target_user_id')
+        signal_data = data.get('data')
+        
+        if signal_type == 'offer':
+            # Stocker l'offre pour l'utilisateur cible
+            call_id = f"{user.id}_{target_user_id}"
+            active_calls[call_id] = {
+                'caller_id': user.id,
+                'callee_id': target_user_id,
+                'offer': signal_data,
+                'answer': None,
+                'ice_candidates': []
+            }
+            
+        elif signal_type == 'answer':
+            # Stocker la réponse
+            call_id = f"{target_user_id}_{user.id}"
+            if call_id in active_calls:
+                active_calls[call_id]['answer'] = signal_data
+                
+        elif signal_type == 'ice-candidate':
+            # Stocker les candidats ICE
+            call_id = f"{user.id}_{target_user_id}" if user.id < target_user_id else f"{target_user_id}_{user.id}"
+            if call_id in active_calls:
+                active_calls[call_id]['ice_candidates'].append({
+                    'from_user': user.id,
+                    'candidate': signal_data
+                })
+        
+        return jsonify({'success': True, 'message': 'Signal reçu'})
+        
+    except Exception as e:
+        print(f"Erreur webrtc_signal: {e}")
+        return jsonify({'success': False, 'error': 'Erreur serveur'})
+
+@app.route('/webrtc_poll/<int:target_user_id>')
+@login_required  
+def webrtc_poll(target_user_id):
+    """Polling pour récupérer les signaux WebRTC"""
+    user = get_current_user()
+    if not user or not hasattr(user, 'id'):
+        return jsonify({'signals': []})
+    
+    try:
+        call_id = f"{target_user_id}_{user.id}"  # L'autre utilisateur nous appelle
+        reverse_call_id = f"{user.id}_{target_user_id}"  # Nous appelons l'autre
+        
+        signals = []
+        
+        # Vérifier si on a reçu une offre
+        if call_id in active_calls and active_calls[call_id]['offer']:
+            signals.append({
+                'type': 'offer',
+                'data': active_calls[call_id]['offer'],
+                'from_user': target_user_id
+            })
+        
+        # Vérifier si on a reçu une réponse
+        if reverse_call_id in active_calls and active_calls[reverse_call_id]['answer']:
+            signals.append({
+                'type': 'answer', 
+                'data': active_calls[reverse_call_id]['answer'],
+                'from_user': target_user_id
+            })
+            
+        # Vérifier les candidats ICE
+        for call_key in [call_id, reverse_call_id]:
+            if call_key in active_calls:
+                for candidate in active_calls[call_key]['ice_candidates']:
+                    if candidate['from_user'] != user.id:
+                        signals.append({
+                            'type': 'ice-candidate',
+                            'data': candidate['candidate'],
+                            'from_user': candidate['from_user']
+                        })
+        
+        return jsonify({'signals': signals})
+        
+    except Exception as e:
+        print(f"Erreur webrtc_poll: {e}")
+        return jsonify({'signals': []})
+
 @app.route('/private_chat/<int:friend_id>')
 @login_required
 def private_chat(friend_id):
