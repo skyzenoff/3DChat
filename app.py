@@ -26,7 +26,7 @@ app.config.update(
     SESSION_COOKIE_SAMESITE=None,
     SESSION_COOKIE_PATH='/',
     SESSION_COOKIE_DOMAIN=None,
-    PERMANENT_SESSION_LIFETIME=86400
+    PERMANENT_SESSION_LIFETIME=86400*7  # 7 jours pour garder la session plus longtemps
 )
 
 def generate_room_code():
@@ -37,7 +37,13 @@ def get_current_user() -> Optional[User]:
     """Récupère l'utilisateur connecté depuis la session"""
     user_id = session.get('user_id')
     if user_id:
-        return User.query.get(user_id)
+        try:
+            return User.query.get(user_id)
+        except Exception as e:
+            # En cas d'erreur DB, nettoyer la session
+            print(f"Erreur DB dans get_current_user: {e}")
+            session.pop('user_id', None)
+            return None
     return None
 
 def login_required(f):
@@ -101,9 +107,14 @@ def login():
         
         if user and user.check_password(password):
             session['user_id'] = user.id
-            user.last_seen = datetime.datetime.utcnow()
-            user.status = 'online'
-            db.session.commit()
+            session.permanent = True  # Activer session permanente pour 3DS
+            try:
+                user.last_seen = datetime.datetime.utcnow()
+                user.status = 'online'
+                db.session.commit()
+            except Exception as e:
+                print(f"Erreur DB lors de la mise à jour du statut: {e}")
+                # Continuer même si la mise à jour échoue
             return redirect(url_for('index'))
         else:
             flash('Nom d\'utilisateur/email ou mot de passe incorrect')
