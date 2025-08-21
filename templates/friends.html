@@ -74,7 +74,7 @@
                 <div class="friends-list">
                     {% for friend in friends %}
                     <div class="friend-card">
-                        <a href="{{ url_for('user_profile', username=friend.username) }}?user={{ user.username }}" style="display: contents;">
+                        <a href="{{ url_for('user_profile', user_id=friend.id) }}?user={{ user.username }}" style="display: contents;">
                             <div class="friend-avatar">
                                 {% if friend.profile_image %}
                                     <img src="{{ friend.profile_image }}" alt="Photo de {{ friend.username }}">
@@ -90,7 +90,7 @@
                             </div>
                         </a>
                         <div class="friend-actions">
-                            <a href="{{ url_for('private_chat', username=friend.username) }}?user={{ user.username }}" class="btn btn-primary btn-small-icon">💬</a>
+                            <a href="{{ url_for('private_chat', friend_id=friend.id) }}?user={{ user.username }}" class="btn btn-primary btn-small-icon">💬</a>
                         </div>
                     </div>
                     {% endfor %}
