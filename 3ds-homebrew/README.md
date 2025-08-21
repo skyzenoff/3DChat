@@ -11,13 +11,13 @@ Un homebrew Nintendo 3DS/2DS pour utiliser Discord de manière native sur votre 
 - ✅ Compatible avec tous les modèles 3DS/2DS
 - ✅ Connexion sécurisée au serveur
 
-## Version actuelle : DÉMO OFFLINE
+## Version actuelle : HYBRIDE INTELLIGENTE
 
-Cette version fonctionne sans dépendances externes problématiques et inclut :
-- **Interface native 3DS** complète avec navigation
-- **3 salons prédéfinis** : Général, Gaming, Aide
-- **Messages de démo** interactifs 
-- **Pas de réseau requis** - fonctionne hors ligne
+Cette version s'adapte automatiquement à votre environnement :
+- **Mode connecté** : Communique avec votre serveur Flask via HTTP natif
+- **Fallback démo** : Fonctionne hors ligne si pas de réseau
+- **Parser JSON natif** : Pas besoin de json-c ou autres dépendances
+- **Interface complète** : Navigation D-PAD, saisie interactive, 3 utilisateurs test
 
 ## Prérequis
 
@@ -45,10 +45,14 @@ Téléchargez le fichier `3ds-discord.3dsx` depuis les releases.
 Placez le fichier dans le dossier `/3ds/` de votre carte SD.
 
 ### 3. Configuration du serveur
-Modifiez l'URL du serveur dans le fichier `source/main.c` ligne 10 :
+Modifiez l'adresse du serveur dans `source/main.c` lignes 17-19 :
 ```c
-#define SERVER_URL "http://your-server-url.com"
+#define SERVER_HOST "votre-app.replit.app"
+#define SERVER_PORT 443  // HTTPS recommandé
+#define SERVER_PATH "/api"
 ```
+
+Voir `configuration-exemple.c` pour plus d'exemples de configuration.
 
 ## Compilation
 
@@ -85,8 +89,9 @@ make
 ### Contrôles
 
 **Écran de connexion :**
-- D-PAD : Navigation
-- A : Se connecter
+- A : Se connecter comme Skyzen
+- X : Se connecter comme Alice  
+- Y : Se connecter comme Bob
 - START : Quitter
 
 **Liste des salons :**
@@ -102,8 +107,8 @@ make
 - START : Quitter
 
 **Saisie de message :**
-- Clavier tactile pour écrire
-- A : Envoyer le message
+- D-PAD Haut/Bas : Sélectionner un message prédéfini
+- A : Confirmer et envoyer
 - B : Annuler
 
 ### Premier lancement

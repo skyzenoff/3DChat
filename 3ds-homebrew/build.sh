@@ -39,8 +39,10 @@ if make; then
     echo "   1. Copiez 3ds-discord.3dsx dans le dossier /3ds/ de votre carte SD"
     echo "   2. Lancez-le depuis le Homebrew Launcher"
     echo ""
-    echo "⚠️  N'oubliez pas de modifier SERVER_URL dans source/main.c"
-    echo "    avec l'adresse de votre serveur Flask avant compilation!"
+    echo "⚠️  Configuration requise dans source/main.c:"
+    echo "    - SERVER_HOST: votre nom d'hôte (ex: mon-app.replit.app)"
+    echo "    - SERVER_PORT: 80 pour HTTP, 443 pour HTTPS" 
+    echo "    - SERVER_PATH: /api (chemin de l'API)"
 else
     echo "❌ Erreur de compilation"
     echo "💡 Vérifiez que vous avez installé:"

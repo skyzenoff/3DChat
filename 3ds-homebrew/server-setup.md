@@ -1,27 +1,35 @@
 # Configuration du serveur pour le homebrew 3DS
 
-## Version actuelle : DÉMO OFFLINE
+## Version actuelle : HYBRIDE (Réseau + Fallback Démo)
 
-La version actuelle du homebrew fonctionne en mode démo offline pour éviter les problèmes de dépendances (json-c, curl). Elle inclut :
+La version actuelle du homebrew est intelligente et s'adapte automatiquement :
 
-- **Données de démo** : 3 salons prédéfinis avec messages
-- **Pas de réseau** : Fonctionne sans connexion Internet  
-- **Interface complète** : Navigation, salons, messages, saisie
+- **Mode connecté** : Si Internet disponible, communique avec votre serveur Flask
+- **Fallback démo** : Si pas de réseau ou serveur inaccessible, utilise des données locales
+- **Parser JSON natif** : Pas besoin de librairies externes comme json-c
+- **Communication HTTP native** : Utilise les sockets système 3DS
 
-## Pour la version connectée (future)
+## Configuration pour la version connectée
 
 Votre serveur Flask doit être accessible depuis Internet et supporter les requêtes HTTPS pour fonctionner avec le homebrew 3DS.
 
 ## Configuration nécessaire
 
-### 1. Modifier l'URL du serveur
+### 1. Configurer l'adresse du serveur
 
-Dans `source/main.c`, ligne 10 :
+Dans `source/main.c`, lignes 17-19 :
 ```c
-#define SERVER_URL "https://votre-domaine.com"  // Remplacez par votre URL
+#define SERVER_HOST "votre-app.replit.app"  // Remplacez par votre nom d'hôte
+#define SERVER_PORT 80  // Port HTTP (80 pour HTTP, 443 pour HTTPS)
+#define SERVER_PATH "/api"  // Chemin de base de l'API
 ```
 
-**Important :** Utilisez HTTPS (SSL) car la Nintendo 3DS n'accepte pas les connexions HTTP non sécurisées vers Internet.
+**Configuration pour Replit Deployments :**
+```c
+#define SERVER_HOST "mon-projet.username.repl.co"
+#define SERVER_PORT 443  // HTTPS recommandé
+#define SERVER_PATH "/api"
+```
 
 ### 2. Headers CORS (déjà configuré)
 
