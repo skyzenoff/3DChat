@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3DChat - Chat optimisé pour Nintendo 3DS</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            text-align: center;
+            color: white;
+            margin-bottom: 50px;
+        }
+        
+        h1 {
+            font-size: 3.5rem;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .subtitle {
+            font-size: 1.5rem;
+            opacity: 0.9;
+            margin-bottom: 30px;
+        }
+        
+        .demo-link {
+            display: inline-block;
+            background: #43b581;
+            color: white;
+            padding: 15px 30px;
+            text-decoration: none;
+            border-radius: 25px;
+            font-size: 1.2rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        
+        .demo-link:hover {
+            background: #3ca374;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+        
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-top: 50px;
+        }
+        
+        .feature-card {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+            transition: transform 0.3s ease;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .feature-icon {
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+        }
+        
+        .feature-title {
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+            color: #667eea;
+        }
+        
+        .feature-description {
+            color: #666;
+            line-height: 1.6;
+        }
+        
+        .tech-stack {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 40px;
+            border-radius: 15px;
+            margin-top: 50px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
+        
+        .tech-stack h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 2rem;
+        }
+        
+        .tech-tags {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 15px;
+        }
+        
+        .tech-tag {
+            background: #f8f9fa;
+            padding: 10px 20px;
+            border-radius: 20px;
+            border: 2px solid #667eea;
+            color: #667eea;
+            font-weight: 500;
+        }
+        
+        .github-link {
+            text-align: center;
+            margin-top: 40px;
+        }
+        
+        .github-btn {
+            display: inline-block;
+            background: #24292e;
+            color: white;
+            padding: 15px 30px;
+            text-decoration: none;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            transition: background 0.3s ease;
+        }
+        
+        .github-btn:hover {
+            background: #1b1f23;
+        }
+        
+        .compatibility {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 15px;
+            margin-top: 30px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
+        
+        .compatibility h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+        
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2.5rem;
+            }
+            
+            .subtitle {
+                font-size: 1.2rem;
+            }
+            
+            .features {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎮 3DChat</h1>
+            <p class="subtitle">Application de chat optimisée pour Nintendo 3DS/2DS</p>
+            <a href="#" class="demo-link">🚀 Essayer la démo</a>
+        </header>
+
+        <div class="features">
+            <div class="feature-card">
+                <div class="feature-icon">💬</div>
+                <h3 class="feature-title">Chat en temps réel</h3>
+                <p class="feature-description">Discutez en temps réel avec d'autres utilisateurs dans des salons de discussion dédiés. Système de polling optimisé pour les navigateurs 3DS.</p>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon">🏠</div>
+                <h3 class="feature-title">Salons personnalisés</h3>
+                <p class="feature-description">Créez vos propres salons publics ou privés. Les salons privés utilisent des codes à 6 chiffres pour plus de sécurité.</p>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon">👥</div>
+                <h3 class="feature-title">Présence utilisateurs</h3>
+                <p class="feature-description">Voyez qui est connecté dans chaque salon en temps réel. Compteur d'utilisateurs actifs visible sur la page d'accueil.</p>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon">🔒</div>
+                <h3 class="feature-title">Salons privés</h3>
+                <p class="feature-description">Créez des salons privés avec codes d'accès. Les salons sont automatiquement supprimés quand le créateur quitte.</p>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon">⚡</div>
+                <h3 class="feature-title">Performance optimisée</h3>
+                <p class="feature-description">Interface légère adaptée aux contraintes hardware de la 3DS. CSS et JavaScript compatibles avec les anciens navigateurs.</p>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon">🎨</div>
+                <h3 class="feature-title">Interface Discord-like</h3>
+                <p class="feature-description">Design inspiré de Discord avec une palette de couleurs familière et une ergonomie adaptée aux écrans 3DS (400px).</p>
+            </div>
+        </div>
+
+        <div class="compatibility">
+            <h3>🎮 Compatibilité</h3>
+            <p>Testé et optimisé pour les navigateurs Nintendo 3DS et 2DS. Compatible également avec tous les navigateurs modernes pour le développement et les tests.</p>
+        </div>
+
+        <div class="tech-stack">
+            <h2>🛠️ Technologies utilisées</h2>
+            <div class="tech-tags">
+                <span class="tech-tag">Python</span>
+                <span class="tech-tag">Flask</span>
+                <span class="tech-tag">HTML5</span>
+                <span class="tech-tag">CSS3</span>
+                <span class="tech-tag">JavaScript</span>
+                <span class="tech-tag">3DS Compatible</span>
+            </div>
+        </div>
+
+        <div class="github-link">
+            <a href="https://github.com/yourusername/3dchat" class="github-btn">
+                📁 Voir sur GitHub
+            </a>
+        </div>
+    </div>
+</body>
+</html>
