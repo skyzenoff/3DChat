@@ -43,8 +43,12 @@
         </form>
     </div>
 
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
     <script>
-        // Auto-scroll vers le bas
+        // Démarrer le polling pour les messages privés
+        startPrivatePolling('{{ friend.username }}', '{{ user.username }}');
+        
+        // Auto-scroll vers le bas au chargement initial
         window.onload = function() {
             var messagesContainer = document.getElementById('messages');
             messagesContainer.scrollTop = messagesContainer.scrollHeight;

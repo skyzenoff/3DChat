@@ -2,6 +2,7 @@
 var pollingInterval;
 var currentRoom;
 var currentUser;
+var currentFriend; // Pour les messages privés
 
 // Détection du navigateur
 var is3DS = navigator.userAgent.indexOf('Nintendo 3DS') !== -1;
@@ -66,6 +67,44 @@ function updateMessages() {
                     messagesContainer.innerHTML = response;
                 }
                 
+                // Scroller vers le bas automatiquement
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }
+        }
+    };
+    
+    xhr.send();
+}
+
+// Polling pour les messages privés
+function startPrivatePolling(friendUsername, username) {
+    currentFriend = friendUsername;
+    currentUser = username;
+    
+    // Arrêter le polling précédent s'il existe
+    if (pollingInterval) {
+        clearInterval(pollingInterval);
+    }
+    
+    // Polling toutes les 3 secondes
+    pollingInterval = setInterval(function() {
+        updatePrivateMessages();
+    }, 3000);
+}
+
+function updatePrivateMessages() {
+    if (!currentFriend || !currentUser) return;
+    
+    // Utiliser XMLHttpRequest pour compatibilité 3DS
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', '/get_private_messages/' + encodeURIComponent(currentFriend) + '?user=' + encodeURIComponent(currentUser), true);
+    
+    xhr.onreadystatechange = function() {
+        if (xhr.readyState === 4 && xhr.status === 200) {
+            var messagesContainer = document.getElementById('messages');
+            
+            if (messagesContainer) {
+                messagesContainer.innerHTML = xhr.responseText;
                 // Scroller vers le bas automatiquement
                 messagesContainer.scrollTop = messagesContainer.scrollHeight;
             }

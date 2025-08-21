@@ -537,7 +537,102 @@ def send_private_message(username):
         db.session.add(message)
         db.session.commit()
     
+    # Préserver le paramètre utilisateur pour 3DS
+    user_param = request.args.get('user')
+    if user_param:
+        return redirect(url_for('private_chat', username=username, user=user_param))
     return redirect(url_for('private_chat', username=username))
+
+@app.route('/get_private_messages/<username>')
+@login_required
+def get_private_messages(username):
+    """API pour récupérer les messages privés (pour le polling)"""
+    user = get_current_user()
+    if not user:
+        return 'Non autorisé', 401
+        
+    friend = User.query.filter_by(username=username).first_or_404()
+    
+    if not user.is_friend_with(friend):
+        return 'Non autorisé', 403
+    
+    # Marquer les messages comme lus
+    PrivateMessage.query.filter(
+        PrivateMessage.sender_id == friend.id,
+        PrivateMessage.receiver_id == user.id,
+        PrivateMessage.is_read == False
+    ).update({'is_read': True})
+    db.session.commit()
+    
+    # Récupérer les messages
+    messages = PrivateMessage.query.filter(
+        ((PrivateMessage.sender_id == user.id) & (PrivateMessage.receiver_id == friend.id)) |
+        ((PrivateMessage.sender_id == friend.id) & (PrivateMessage.receiver_id == user.id))
+    ).order_by(PrivateMessage.created_at.asc()).limit(50).all()
+    
+    # Retourner le HTML des messages seulement
+    html = ''
+    for message in messages:
+        message_class = 'own' if message.sender_id == user.id else 'other'
+        html += f'<div class="private-message {message_class}">'
+        html += f'<div class="message-content">{message.content}</div>'
+        html += f'<div class="message-time">{message.created_at.strftime("%H:%M")}</div>'
+        html += '</div>'
+    
+    return html
+
+@app.route('/get_messages/<int:room_id>')
+@login_required
+def get_messages(room_id):
+    """API pour récupérer les messages du salon (pour le polling)"""
+    user = get_current_user()
+    if not user:
+        return 'Non autorisé', 401
+        
+    room = Room.query.get_or_404(room_id)
+    
+    # Vérifier l'accès au salon
+    if not room.is_public:
+        member = RoomMember.query.filter_by(room_id=room.id, user_id=user.id).first()
+        if not member and room.owner_id != user.id:
+            return 'Non autorisé', 403
+    
+    # Récupérer les messages récents
+    messages = room.get_recent_messages()
+    
+    # Récupérer les membres
+    members = db.session.query(User).join(RoomMember).filter(RoomMember.room_id == room.id).all()
+    users_list = [member.username for member in members]
+    
+    # Retourner le HTML des messages + utilisateurs
+    html = ''
+    for msg in messages:
+        if msg.message_type == 'voice':
+            html += f'<div class="message voice-message">'
+            html += f'<span class="author">{msg.user.username}</span>'
+            html += f'<span class="time">{msg.created_at.strftime("%H:%M")}</span><br>'
+            html += f'🎤 <audio controls><source src="data:audio/wav;base64,{msg.content}" type="audio/wav"></audio>'
+            html += '</div>'
+        elif msg.message_type == 'image':
+            html += f'<div class="message image-message">'
+            html += f'<span class="author">{msg.user.username}</span>'
+            html += f'<span class="time">{msg.created_at.strftime("%H:%M")}</span><br>'
+            html += f'📷 Image partagée'
+            html += '</div>'
+        else:
+            html += f'<div class="message">'
+            html += f'<span class="author">{msg.user.username}</span>'
+            html += f'<span class="time">{msg.created_at.strftime("%H:%M")}</span><br>'
+            html += f'{msg.content}'
+            html += '</div>'
+    
+    # Ajouter la liste des utilisateurs
+    html += '<div id="users-list">'
+    for username in users_list:
+        html += f'<span class="user-badge">{username}</span>'
+    html += '</div>'
+    
+    return html
 
 @app.route('/create_room', methods=['GET', 'POST'])
 @login_required
