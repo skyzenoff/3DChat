@@ -4,6 +4,16 @@
 
 3DS Discord is a native homebrew chat application for Nintendo 3DS/2DS consoles. The application provides a Discord-like chat experience with multiple rooms, real-time messaging, and user presence tracking. It's built with C using libctru and includes both a native 3DS client and a Flask web server backend for data synchronization.
 
+## Recent Changes
+
+**August 21, 2025 - Migration to Replit Environment Completed**
+- Successfully migrated from Replit Agent to Replit hosting environment
+- Restructured Flask application with proper client/server separation
+- Fixed database configuration with PostgreSQL integration
+- Updated SQLAlchemy models for compatibility
+- Resolved session secret key configuration issue
+- Application now running successfully on Replit with proper security practices
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
