@@ -58,8 +58,8 @@
                             </div>
                         </div>
                         <div class="friend-actions">
-                            <a href="{{ url_for('accept_friend', user_id=requester.id) }}?user={{ user.username }}" class="btn btn-primary btn-small-icon">✓</a>
-                            <a href="{{ url_for('decline_friend', user_id=requester.id) }}?user={{ user.username }}" class="btn btn-small-icon" style="background-color: #f04747;">✗</a>
+                            <a href="{{ url_for('accept_friend', friendship_id=requester.friendship_id) }}?user={{ user.username }}" class="btn btn-primary btn-small-icon">✓</a>
+                            <a href="{{ url_for('decline_friend', friendship_id=requester.friendship_id) }}?user={{ user.username }}" class="btn btn-small-icon" style="background-color: #f04747;">✗</a>
                         </div>
                     </div>
                     {% endfor %}

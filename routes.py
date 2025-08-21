@@ -403,12 +403,16 @@ def friends():
     try:
         friends = user.get_friends() if hasattr(user, 'get_friends') else []
         
-        # Demandes reçues
+        # Demandes reçues avec l'ID de l'amitié
         pending_requests = []
         if hasattr(user, 'id'):
-            pending_requests = db.session.query(User).join(
-                Friendship, User.id == Friendship.requester_id
+            friendships = db.session.query(Friendship, User).join(
+                User, User.id == Friendship.requester_id
             ).filter(Friendship.addressee_id == user.id, Friendship.status == 'pending').all()
+            
+            for friendship, requester in friendships:
+                requester.friendship_id = friendship.id  # Ajouter l'ID de l'amitié
+                pending_requests.append(requester)
         
         return render_template('friends.html', user=user, friends=friends, pending_requests=pending_requests)
     except Exception as e:
@@ -532,6 +536,8 @@ def accept_friend(friendship_id):
     if not user or not hasattr(user, 'id'):
         return redirect(url_for('login'))
     
+    user_param = request.args.get('user')
+    
     try:
         friendship = Friendship.query.get(friendship_id)
         if friendship and friendship.addressee_id == user.id:
@@ -542,6 +548,8 @@ def accept_friend(friendship_id):
         print(f"Erreur acceptation ami: {e}")
         flash('Erreur lors de l\'acceptation')
     
+    if user_param:
+        return redirect(url_for('friends', user=user_param))
     return redirect(url_for('friends'))
 
 @app.route('/decline_friend/<int:friendship_id>')
@@ -550,6 +558,8 @@ def decline_friend(friendship_id):
     user = get_current_user()
     if not user or not hasattr(user, 'id'):
         return redirect(url_for('login'))
+    
+    user_param = request.args.get('user')
     
     try:
         friendship = Friendship.query.get(friendship_id)
@@ -561,6 +571,8 @@ def decline_friend(friendship_id):
         print(f"Erreur refus ami: {e}")
         flash('Erreur lors du refus')
     
+    if user_param:
+        return redirect(url_for('friends', user=user_param))
     return redirect(url_for('friends'))
 
 @app.route('/private_messages')
