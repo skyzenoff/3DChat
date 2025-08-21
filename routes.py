@@ -646,6 +646,39 @@ def send_private_message(friend_id):
         print(f"Erreur envoi message privé: {e}")
         return redirect(url_for('private_chat', friend_id=friend_id))
 
+@app.route('/get_private_messages/<int:friend_id>')
+@login_required
+def get_private_messages(friend_id):
+    """Endpoint pour récupérer les messages privés (polling pour 3DS)"""
+    user = get_current_user()
+    if not user or not hasattr(user, 'id'):
+        return ""
+    
+    try:
+        friend = User.query.get(friend_id)
+        if not friend or not user.is_friend_with(friend):
+            return ""
+        
+        # Récupérer les 20 derniers messages
+        messages = PrivateMessage.query.filter(
+            ((PrivateMessage.sender_id == user.id) & (PrivateMessage.receiver_id == friend.id)) |
+            ((PrivateMessage.sender_id == friend.id) & (PrivateMessage.receiver_id == user.id))
+        ).order_by(PrivateMessage.created_at.desc()).limit(20).all()[::-1]
+        
+        # Retourner du HTML simple pour compatibilité 3DS
+        html = ""
+        for message in messages:
+            is_own = message.sender_id == user.id
+            sender_name = user.username if is_own else friend.username
+            timestamp = message.created_at.strftime('%H:%M')
+            css_class = 'own' if is_own else 'other'
+            html += f'<div class="private-message {css_class}"><div class="message-content">{message.content}</div><div class="message-time">{timestamp}</div></div>'
+        
+        return html
+    except Exception as e:
+        print(f"Erreur get_private_messages: {e}")
+        return ""
+
 @app.route('/user_profile/<int:user_id>')
 @login_required
 def user_profile(user_id):

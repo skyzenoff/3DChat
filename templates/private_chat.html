@@ -23,7 +23,7 @@
                     {{ '🟢 En ligne' if friend.status == 'online' else '⚫ Hors ligne' }}
                 </div>
             </div>
-            <a href="{{ url_for('user_profile', username=friend.username) }}?user={{ user.username }}" class="btn btn-small">Profil</a>
+            <a href="{{ url_for('user_profile', user_id=friend.id) }}?user={{ user.username }}" class="btn btn-small">Profil</a>
         </div>
 
         <div class="chat-messages" id="messages">
@@ -50,7 +50,7 @@
         
         function updatePrivateMessages() {
             var xhr = new XMLHttpRequest();
-            xhr.open('GET', '/get_private_messages/{{ friend.username }}?user={{ user.username }}', true);
+            xhr.open('GET', '/get_private_messages/{{ friend.id }}?user={{ user.username }}', true);
             
             xhr.onreadystatechange = function() {
                 if (xhr.readyState === 4 && xhr.status === 200) {
@@ -79,7 +79,7 @@
             sendBtn.textContent = 'Envoi...';
             
             var xhr = new XMLHttpRequest();
-            xhr.open('POST', '/send_private_message/{{ friend.username }}?user={{ user.username }}', true);
+            xhr.open('POST', '/send_private_message/{{ friend.id }}?user={{ user.username }}', true);
             xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
             
             xhr.onreadystatechange = function() {

@@ -19,7 +19,7 @@
             {% if conversations %}
             <div class="conversation-list">
                 {% for conversation in conversations %}
-                <a href="{{ url_for('private_chat', username=conversation.friend.username) }}?user={{ user.username }}" class="conversation-item {{ 'conversation-unread' if conversation.unread_count > 0 else '' }}">
+                <a href="{{ url_for('private_chat', friend_id=conversation.friend.id) }}?user={{ user.username }}" class="conversation-item {{ 'conversation-unread' if conversation.unread_count > 0 else '' }}">
                     <div class="friend-avatar">
                         {% if conversation.friend.profile_image %}
                             <img src="{{ conversation.friend.profile_image }}" alt="Photo de {{ conversation.friend.username }}">
