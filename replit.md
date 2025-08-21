@@ -1,8 +1,8 @@
-# 3DS Discord
+# 3DS Discord Homebrew
 
 ## Overview
 
-3DS Discord is a lightweight chat application specifically optimized for Nintendo 3DS/2DS browsers. The application provides a Discord-like chat experience with multiple rooms, real-time messaging, and user presence tracking. It's built with Flask and uses in-memory storage to maintain simplicity and reduce resource usage on the constrained 3DS hardware.
+3DS Discord is a native homebrew chat application for Nintendo 3DS/2DS consoles. The application provides a Discord-like chat experience with multiple rooms, real-time messaging, and user presence tracking. It's built with C using libctru and includes both a native 3DS client and a Flask web server backend for data synchronization.
 
 ## User Preferences
 

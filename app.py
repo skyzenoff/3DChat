@@ -621,6 +621,134 @@ def user_profile(user_id):
     
     return render_template('user_profile.html', user=user, profile_user=profile_user)
 
+# Routes API pour le homebrew 3DS
+@app.route('/api/login', methods=['POST'])
+def api_login():
+    data = request.get_json()
+    username_or_email = data.get('username', '').strip()
+    password = data.get('password', '')
+    
+    if not username_or_email or not password:
+        return jsonify({'success': False, 'error': 'Données manquantes'})
+    
+    try:
+        user = User.query.filter(
+            (User.username == username_or_email) | (User.email == username_or_email)
+        ).first()
+        
+        if user and user.check_password(password):
+            user.status = 'online'
+            user.last_seen = datetime.datetime.utcnow()
+            db.session.commit()
+            
+            return jsonify({
+                'success': True,
+                'user': {
+                    'id': user.id,
+                    'username': user.username,
+                    'email': user.email,
+                    'status': user.status
+                }
+            })
+        else:
+            return jsonify({'success': False, 'error': 'Identifiants invalides'})
+    except Exception as e:
+        print(f"Erreur API login: {e}")
+        return jsonify({'success': False, 'error': 'Erreur serveur'})
+
+@app.route('/api/rooms')
+def api_rooms():
+    try:
+        username = request.args.get('user', '')
+        
+        public_rooms = Room.query.filter_by(is_public=True).all()
+        rooms_data = []
+        
+        for room in public_rooms:
+            rooms_data.append({
+                'id': room.id,
+                'name': room.name,
+                'user_count': room.get_member_count(),
+                'message_count': room.messages.count(),
+                'is_public': room.is_public
+            })
+        
+        return jsonify({
+            'success': True,
+            'rooms': rooms_data
+        })
+    except Exception as e:
+        print(f"Erreur API rooms: {e}")
+        return jsonify({'success': False, 'error': 'Erreur serveur'})
+
+@app.route('/api/room/<int:room_id>/messages')
+def api_room_messages(room_id):
+    try:
+        username = request.args.get('user', '')
+        
+        room = Room.query.get(room_id)
+        if not room:
+            return jsonify({'success': False, 'error': 'Salon inexistant'})
+        
+        messages = room.get_recent_messages(20)
+        messages_data = []
+        
+        for message in messages:
+            messages_data.append({
+                'id': message.id,
+                'username': message.user.username,
+                'content': message.content,
+                'timestamp': message.created_at.strftime('%Y-%m-%d %H:%M:%S')
+            })
+        
+        return jsonify({
+            'success': True,
+            'messages': messages_data
+        })
+    except Exception as e:
+        print(f"Erreur API messages: {e}")
+        return jsonify({'success': False, 'error': 'Erreur serveur'})
+
+@app.route('/api/room/<int:room_id>/send', methods=['POST'])
+def api_send_message(room_id):
+    try:
+        data = request.get_json()
+        username = data.get('user', '').strip()
+        message_content = data.get('message', '').strip()
+        
+        if not username or not message_content:
+            return jsonify({'success': False, 'error': 'Données manquantes'})
+        
+        user = User.query.filter_by(username=username).first()
+        if not user:
+            return jsonify({'success': False, 'error': 'Utilisateur introuvable'})
+        
+        room = Room.query.get(room_id)
+        if not room:
+            return jsonify({'success': False, 'error': 'Salon inexistant'})
+        
+        # Ajouter l'utilisateur au salon s'il n'y est pas
+        membership = RoomMember.query.filter_by(room_id=room_id, user_id=user.id).first()
+        if not membership:
+            membership = RoomMember()
+            membership.room_id = room_id
+            membership.user_id = user.id
+            db.session.add(membership)
+        
+        # Créer le message
+        message = RoomMessage()
+        message.room_id = room_id
+        message.user_id = user.id
+        message.content = message_content[:500]  # Limiter à 500 caractères
+        message.message_type = 'text'
+        db.session.add(message)
+        db.session.commit()
+        
+        return jsonify({'success': True, 'message': 'Message envoyé'})
+    except Exception as e:
+        print(f"Erreur API send message: {e}")
+        return jsonify({'success': False, 'error': 'Erreur serveur'})
+
 # Créer les tables au démarrage
 with app.app_context():
     db.create_all()
