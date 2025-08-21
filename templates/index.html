@@ -17,13 +17,21 @@
         </header>
 
         <main>
+            <div class="room-actions">
+                <a href="{{ url_for('create_room', user=username) }}" class="btn btn-primary">Créer un salon</a>
+                <a href="{{ url_for('join_private', user=username) }}" class="btn btn-small">Salon privé</a>
+            </div>
+            
             <h2>Salons disponibles</h2>
             
             <div class="rooms-list">
                 {% for room_id, room in rooms.items() %}
                 <div class="room-card">
                     <h3>{{ room.name }}</h3>
-                    <p>{{ room.messages|length }} messages</p>
+                    <div class="room-stats">
+                        <span>{{ room.messages|length }} messages</span>
+                        <span>{{ room.user_count }} connectés</span>
+                    </div>
                     <a href="{{ url_for('room', room_id=room_id, user=username) }}" class="btn btn-primary">Rejoindre</a>
                 </div>
                 {% endfor %}

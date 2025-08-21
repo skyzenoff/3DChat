@@ -1,5 +1,6 @@
 import os
 import datetime
+import random
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 
 app = Flask(__name__)
@@ -15,11 +16,11 @@ app.config.update(
     PERMANENT_SESSION_LIFETIME=86400
 )
 
-# Stockage en mémoire
+# Stockage en mémoire - salons par défaut
 rooms = {
-    "general": {"name": "Général", "messages": []},
-    "gaming": {"name": "Jeux", "messages": []},
-    "help": {"name": "Aide", "messages": []}
+    "general": {"name": "Général", "messages": [], "is_public": True, "owner": None, "code": None},
+    "gaming": {"name": "Jeux", "messages": [], "is_public": True, "owner": None, "code": None},
+    "help": {"name": "Aide", "messages": [], "is_public": True, "owner": None, "code": None}
 }
 
 # Utilisateurs connectés par salon
@@ -32,12 +33,29 @@ users_in_rooms = {
 # Tous les utilisateurs connectés
 connected_users = set()
 
+# Compteur pour générer des IDs uniques de salons
+room_counter = 0
+
+def generate_room_code():
+    """Génère un code à 6 chiffres unique"""
+    return str(random.randint(100000, 999999))
+
 @app.route('/')
 def index():
     username = request.args.get('user')
     if not username or username not in connected_users:
         return redirect(url_for('login'))
-    return render_template('index.html', rooms=rooms, username=username)
+    
+    # Calculer le nombre d'utilisateurs par salon pour les salons publics
+    rooms_with_counts = {}
+    for room_id, room_data in rooms.items():
+        if room_data['is_public']:  # Seulement les salons publics
+            rooms_with_counts[room_id] = {
+                **room_data,
+                'user_count': len(users_in_rooms.get(room_id, set()))
+            }
+    
+    return render_template('index.html', rooms=rooms_with_counts, username=username)
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -55,10 +73,29 @@ def logout():
     username = request.args.get('user')
     if username and username in connected_users:
         connected_users.discard(username)
-        # Retirer l'utilisateur de tous les salons
-        for room_users in users_in_rooms.values():
-            room_users.discard(username)
+        # Retirer l'utilisateur de tous les salons et supprimer ses salons
+        _remove_user_from_all_rooms(username)
     return redirect(url_for('login'))
+
+def _remove_user_from_all_rooms(username):
+    """Retire l'utilisateur de tous les salons et supprime ses salons privés"""
+    rooms_to_delete = []
+    
+    for room_id, room_data in rooms.items():
+        # Retirer l'utilisateur du salon
+        if room_id in users_in_rooms:
+            users_in_rooms[room_id].discard(username)
+        
+        # Si l'utilisateur est propriétaire d'un salon privé, marquer pour suppression
+        if room_data['owner'] == username and not room_data['is_public']:
+            rooms_to_delete.append(room_id)
+    
+    # Supprimer les salons privés de l'utilisateur
+    for room_id in rooms_to_delete:
+        if room_id in rooms:
+            del rooms[room_id]
+        if room_id in users_in_rooms:
+            del users_in_rooms[room_id]
 
 @app.route('/room/<room_id>')
 def room(room_id):
@@ -136,7 +173,72 @@ def leave_room(room_id):
     username = request.args.get('user')
     if username and room_id in users_in_rooms:
         users_in_rooms[room_id].discard(username)
+        
+        # Si l'utilisateur est le propriétaire d'un salon privé, le supprimer
+        if (room_id in rooms and 
+            rooms[room_id]['owner'] == username and 
+            not rooms[room_id]['is_public']):
+            del rooms[room_id]
+            del users_in_rooms[room_id]
+            
     return redirect(url_for('index', user=username))
+
+@app.route('/create_room', methods=['GET', 'POST'])
+def create_room():
+    username = request.args.get('user')
+    if not username or username not in connected_users:
+        return redirect(url_for('login'))
+    
+    if request.method == 'POST':
+        room_name = request.form.get('room_name', '').strip()
+        is_public = request.form.get('visibility') == 'public'
+        
+        if room_name and len(room_name) <= 30:
+            global room_counter
+            room_counter += 1
+            room_id = f"room_{room_counter}"
+            
+            # Générer un code pour les salons privés
+            room_code = None if is_public else generate_room_code()
+            
+            rooms[room_id] = {
+                'name': room_name,
+                'messages': [],
+                'is_public': is_public,
+                'owner': username,
+                'code': room_code
+            }
+            
+            users_in_rooms[room_id] = set()
+            
+            if is_public:
+                return redirect(url_for('room', room_id=room_id, user=username))
+            else:
+                flash(f'Salon privé créé ! Code d\'accès : {room_code}')
+                return redirect(url_for('room', room_id=room_id, user=username))
+        else:
+            flash('Nom de salon invalide (max 30 caractères)')
+    
+    return render_template('create_room.html', username=username)
+
+@app.route('/join_private', methods=['GET', 'POST'])
+def join_private():
+    username = request.args.get('user')
+    if not username or username not in connected_users:
+        return redirect(url_for('login'))
+    
+    if request.method == 'POST':
+        room_code = request.form.get('room_code', '').strip()
+        
+        # Chercher le salon avec ce code
+        for room_id, room_data in rooms.items():
+            if (not room_data['is_public'] and 
+                room_data['code'] == room_code):
+                return redirect(url_for('room', room_id=room_id, user=username))
+        
+        flash('Code de salon invalide')
+    
+    return render_template('join_private.html', username=username)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)

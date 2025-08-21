@@ -104,6 +104,14 @@ main {
     background-color: #3ca374;
 }
 
+/* Actions des salons */
+.room-actions {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+    justify-content: center;
+}
+
 /* Salons */
 .rooms-list {
     display: flex;
@@ -124,10 +132,18 @@ main {
     color: #ffffff;
 }
 
-.room-card p {
+.room-stats {
+    display: flex;
+    justify-content: space-between;
     font-size: 11px;
     color: #b9bbbe;
     margin-bottom: 8px;
+}
+
+.room-stats span {
+    background-color: #40444b;
+    padding: 2px 6px;
+    border-radius: 10px;
 }
 
 /* Layout du salon */

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=400, initial-scale=1.0">
+    <title>Rejoindre salon privé - 3DS Discord</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Salon privé</h1>
+            <div class="room-controls">
+                <a href="{{ url_for('index', user=username) }}" class="btn btn-small">Retour</a>
+            </div>
+        </header>
+
+        <main class="login-main">
+            <div class="login-form">
+                <h2>Rejoindre un salon privé</h2>
+                
+                {% with messages = get_flashed_messages() %}
+                    {% if messages %}
+                        <div class="error">
+                            {% for message in messages %}
+                                <p>{{ message }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                {% endwith %}
+
+                <form method="POST">
+                    <div class="form-group">
+                        <label for="room_code">Code du salon (6 chiffres):</label>
+                        <input type="text" id="room_code" name="room_code" maxlength="6" pattern="[0-9]{6}" required>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary btn-large">Rejoindre</button>
+                </form>
+                
+                <div class="info">
+                    <p>Entrez le code à 6 chiffres fourni par le créateur du salon.</p>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <p>Utilisateur: {{ username }}</p>
+        </footer>
+    </div>
+</body>
+</html>

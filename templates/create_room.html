@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=400, initial-scale=1.0">
+    <title>Créer un salon - 3DS Discord</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Créer un salon</h1>
+            <div class="room-controls">
+                <a href="{{ url_for('index', user=username) }}" class="btn btn-small">Retour</a>
+            </div>
+        </header>
+
+        <main class="login-main">
+            <div class="login-form">
+                <h2>Nouveau salon</h2>
+                
+                {% with messages = get_flashed_messages() %}
+                    {% if messages %}
+                        <div class="error">
+                            {% for message in messages %}
+                                <p>{{ message }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                {% endwith %}
+
+                <form method="POST">
+                    <div class="form-group">
+                        <label for="room_name">Nom du salon:</label>
+                        <input type="text" id="room_name" name="room_name" maxlength="30" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Visibilité:</label>
+                        <div style="margin-top: 8px;">
+                            <input type="radio" id="public" name="visibility" value="public" checked>
+                            <label for="public" style="display: inline; margin-left: 4px;">Public</label>
+                        </div>
+                        <div style="margin-top: 4px;">
+                            <input type="radio" id="private" name="visibility" value="private">
+                            <label for="private" style="display: inline; margin-left: 4px;">Privé (code requis)</label>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary btn-large">Créer le salon</button>
+                </form>
+                
+                <div class="info">
+                    <p>Les salons publics sont visibles par tous.</p>
+                    <p>Les salons privés nécessitent un code à 6 chiffres.</p>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <p>Salon créé par: {{ username }}</p>
+        </footer>
+    </div>
+</body>
+</html>
