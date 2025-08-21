@@ -1061,3 +1061,132 @@ body {
         padding-bottom: 50px;
     }
 }
+
+/* Interface d'appel */
+.call-overlay, .incoming-call-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.9);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.call-container, .incoming-call-container {
+    background: #2f3136;
+    border-radius: 12px;
+    padding: 24px;
+    text-align: center;
+    min-width: 300px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+.call-header, .incoming-call-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.call-avatar {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: #7289da;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+    color: white;
+    margin-bottom: 16px;
+    font-weight: bold;
+}
+
+.call-avatar img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.call-name, .caller-name {
+    font-size: 24px;
+    font-weight: bold;
+    color: #ffffff;
+    margin-bottom: 4px;
+}
+
+.call-status {
+    color: #b9bbbe;
+    font-size: 14px;
+}
+
+.call-controls, .incoming-call-controls {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.call-control-btn {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.mute-btn, .video-btn {
+    background: #4f545c;
+    color: white;
+}
+
+.mute-btn:hover, .video-btn:hover {
+    background: #5865f2;
+}
+
+.mute-btn.muted {
+    background: #ed4245;
+}
+
+.end-btn, .decline-btn {
+    background: #ed4245;
+    color: white;
+}
+
+.end-btn:hover, .decline-btn:hover {
+    background: #c73e3e;
+}
+
+.accept-btn {
+    background: #57f287;
+    color: white;
+}
+
+.accept-btn:hover {
+    background: #3ba55c;
+}
+
+.call-duration {
+    color: #b9bbbe;
+    font-size: 16px;
+    font-weight: bold;
+}
+
+.btn-call {
+    background: #57f287;
+    color: white;
+}
+
+.btn-call:hover {
+    background: #3ba55c;
+}

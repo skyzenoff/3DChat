@@ -677,6 +677,105 @@ def get_conversations_update():
         print(f"Erreur get_conversations_update: {e}")
         return jsonify([])
 
+@app.route('/initiate_call/<int:friend_id>')
+@login_required
+def initiate_call(friend_id):
+    """Initier un appel vers un ami"""
+    user = get_current_user()
+    if not user or not hasattr(user, 'id'):
+        return jsonify({'success': False, 'error': 'Utilisateur non authentifié'})
+    
+    try:
+        # Vérifier que l'utilisateur ciblé est bien un ami
+        friend = User.query.get(friend_id)
+        if not friend:
+            return jsonify({'success': False, 'error': 'Utilisateur introuvable'})
+        
+        # Vérifier l'amitié
+        from sqlalchemy import and_, or_
+        friendship = Friendship.query.filter(
+            or_(
+                and_(Friendship.requester_id == user.id, Friendship.addressee_id == friend_id),
+                and_(Friendship.requester_id == friend_id, Friendship.addressee_id == user.id)
+            ),
+            Friendship.status == 'accepted'
+        ).first()
+        
+        if not friendship:
+            return jsonify({'success': False, 'error': 'Vous devez être amis pour appeler'})
+        
+        # Dans une vraie application, ici on enverrait une notification push
+        # ou on utiliserait WebSockets pour notifier l'autre utilisateur
+        
+        return jsonify({
+            'success': True, 
+            'message': f'Appel initié vers {friend.username}',
+            'friend_name': friend.username,
+            'friend_avatar': getattr(friend, 'profile_image', '')
+        })
+        
+    except Exception as e:
+        print(f"Erreur initiate_call: {e}")
+        return jsonify({'success': False, 'error': 'Erreur serveur'})
+
+@app.route('/respond_to_call', methods=['POST'])
+@login_required
+def respond_to_call():
+    """Répondre à un appel (accepter ou refuser)"""
+    user = get_current_user()
+    if not user or not hasattr(user, 'id'):
+        return jsonify({'success': False, 'error': 'Utilisateur non authentifié'})
+    
+    try:
+        data = request.get_json()
+        action = data.get('action')  # 'accept' ou 'decline'
+        caller_id = data.get('caller_id')
+        
+        if action not in ['accept', 'decline']:
+            return jsonify({'success': False, 'error': 'Action invalide'})
+        
+        caller = User.query.get(caller_id)
+        if not caller:
+            return jsonify({'success': False, 'error': 'Appelant introuvable'})
+        
+        # Dans une vraie application, ici on notifierait l'appelant de la réponse
+        
+        return jsonify({
+            'success': True,
+            'action': action,
+            'message': f'Appel {"accepté" if action == "accept" else "refusé"}'
+        })
+        
+    except Exception as e:
+        print(f"Erreur respond_to_call: {e}")
+        return jsonify({'success': False, 'error': 'Erreur serveur'})
+
+@app.route('/end_call', methods=['POST'])
+@login_required
+def end_call():
+    """Terminer un appel en cours"""
+    user = get_current_user()
+    if not user or not hasattr(user, 'id'):
+        return jsonify({'success': False, 'error': 'Utilisateur non authentifié'})
+    
+    try:
+        data = request.get_json()
+        other_user_id = data.get('other_user_id')
+        call_duration = data.get('duration', 0)
+        
+        # Dans une vraie application, ici on sauvegarderait les statistiques d'appel
+        # et on notifierait l'autre utilisateur que l'appel est terminé
+        
+        return jsonify({
+            'success': True,
+            'message': 'Appel terminé',
+            'duration': call_duration
+        })
+        
+    except Exception as e:
+        print(f"Erreur end_call: {e}")
+        return jsonify({'success': False, 'error': 'Erreur serveur'})
+
 @app.route('/private_chat/<int:friend_id>')
 @login_required
 def private_chat(friend_id):

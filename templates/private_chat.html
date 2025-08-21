@@ -24,6 +24,8 @@
                 </div>
             </div>
             <a href="{{ url_for('user_profile', user_id=friend.id) }}?user={{ user.username }}" class="btn btn-small">Profil</a>
+            <button onclick="startCall()" class="btn btn-small btn-call" id="call-btn">📞 Appeler</button>
+            <button onclick="simulateIncomingCall('{{ friend.username }}', '')" class="btn btn-small" style="background: #faa61a;">🔔 Test appel</button>
         </div>
 
         <div class="chat-messages" id="messages">
@@ -41,6 +43,63 @@
                 <button type="submit" class="btn btn-primary" id="send-btn">Envoyer</button>
             </div>
         </form>
+    </div>
+
+    <!-- Interface d'appel -->
+    <div class="call-overlay" id="call-overlay" style="display: none;">
+        <div class="call-container">
+            <div class="call-header">
+                <div class="call-avatar">
+                    {% if friend.profile_image %}
+                        <img src="{{ friend.profile_image }}" alt="Photo de {{ friend.username }}">
+                    {% else %}
+                        {{ friend.username[0].upper() }}
+                    {% endif %}
+                </div>
+                <div class="call-info">
+                    <div class="call-name">{{ friend.username }}</div>
+                    <div class="call-status" id="call-status">Appel en cours...</div>
+                </div>
+            </div>
+            
+            <div class="call-controls">
+                <button class="call-control-btn mute-btn" id="mute-btn" onclick="toggleMute()">
+                    <span id="mute-icon">🔊</span>
+                </button>
+                <button class="call-control-btn video-btn" id="video-btn" onclick="toggleVideo()">
+                    <span id="video-icon">📹</span>
+                </button>
+                <button class="call-control-btn end-btn" onclick="endCall()">
+                    📞
+                </button>
+            </div>
+            
+            <div class="call-duration" id="call-duration">00:00</div>
+        </div>
+    </div>
+
+    <!-- Notification d'appel entrant -->
+    <div class="incoming-call-overlay" id="incoming-call-overlay" style="display: none;">
+        <div class="incoming-call-container">
+            <div class="incoming-call-header">
+                <div class="call-avatar">
+                    <span id="caller-avatar"></span>
+                </div>
+                <div class="incoming-call-info">
+                    <div class="caller-name" id="caller-name"></div>
+                    <div class="call-status">Appel entrant...</div>
+                </div>
+            </div>
+            
+            <div class="incoming-call-controls">
+                <button class="call-control-btn accept-btn" onclick="acceptCall()">
+                    📞
+                </button>
+                <button class="call-control-btn decline-btn" onclick="declineCall()">
+                    ❌
+                </button>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -132,6 +191,219 @@
                 clearInterval(pollingInterval);
             }
         };
+        
+        // Variables pour les appels
+        var isInCall = false;
+        var callTimer = null;
+        var callStartTime = null;
+        var isMuted = false;
+        var isVideoEnabled = true;
+        
+        // Fonction pour démarrer un appel
+        function startCall() {
+            if (isInCall) return;
+            
+            var callOverlay = document.getElementById('call-overlay');
+            var callStatus = document.getElementById('call-status');
+            var callBtn = document.getElementById('call-btn');
+            
+            isInCall = true;
+            callOverlay.style.display = 'flex';
+            callStatus.textContent = 'Appel en cours...';
+            callBtn.textContent = '📞 En appel';
+            callBtn.disabled = true;
+            
+            // Appeler l'API backend pour initier l'appel
+            var xhr = new XMLHttpRequest();
+            xhr.open('GET', '/initiate_call/{{ friend.id }}', true);
+            
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === 4) {
+                    if (xhr.status === 200) {
+                        try {
+                            var response = JSON.parse(xhr.responseText);
+                            if (response.success) {
+                                // Simuler la connexion après 2 secondes
+                                setTimeout(function() {
+                                    callStatus.textContent = 'Connecté';
+                                    startCallTimer();
+                                    console.log('Appel connecté avec ' + response.friend_name);
+                                }, 2000);
+                            } else {
+                                console.error('Erreur appel:', response.error);
+                                endCall();
+                                alert('Erreur: ' + response.error);
+                            }
+                        } catch (e) {
+                            console.error('Erreur parsing réponse appel:', e);
+                            endCall();
+                        }
+                    } else {
+                        console.error('Erreur HTTP appel:', xhr.status);
+                        endCall();
+                    }
+                }
+            };
+            
+            xhr.send();
+        }
+        
+        // Fonction pour accepter un appel entrant
+        function acceptCall() {
+            var incomingOverlay = document.getElementById('incoming-call-overlay');
+            var callOverlay = document.getElementById('call-overlay');
+            var callStatus = document.getElementById('call-status');
+            
+            incomingOverlay.style.display = 'none';
+            callOverlay.style.display = 'flex';
+            callStatus.textContent = 'Connecté';
+            
+            isInCall = true;
+            startCallTimer();
+            
+            console.log('Appel accepté');
+        }
+        
+        // Fonction pour refuser un appel entrant
+        function declineCall() {
+            var incomingOverlay = document.getElementById('incoming-call-overlay');
+            incomingOverlay.style.display = 'none';
+            
+            console.log('Appel refusé');
+        }
+        
+        // Fonction pour terminer l'appel
+        function endCall() {
+            var callOverlay = document.getElementById('call-overlay');
+            var incomingOverlay = document.getElementById('incoming-call-overlay');
+            var callBtn = document.getElementById('call-btn');
+            
+            // Calculer la durée si on était en appel
+            var duration = 0;
+            if (callStartTime) {
+                duration = Math.floor((new Date() - callStartTime) / 1000);
+            }
+            
+            isInCall = false;
+            callOverlay.style.display = 'none';
+            incomingOverlay.style.display = 'none';
+            
+            if (callTimer) {
+                clearInterval(callTimer);
+                callTimer = null;
+                callStartTime = null;
+            }
+            
+            if (callBtn) {
+                callBtn.textContent = '📞 Appeler';
+                callBtn.disabled = false;
+            }
+            
+            // Réinitialiser les états
+            isMuted = false;
+            isVideoEnabled = true;
+            updateMuteButton();
+            updateVideoButton();
+            
+            // Notifier le serveur de la fin d'appel
+            if (duration > 0) {
+                var xhr = new XMLHttpRequest();
+                xhr.open('POST', '/end_call', true);
+                xhr.setRequestHeader('Content-Type', 'application/json');
+                
+                xhr.send(JSON.stringify({
+                    other_user_id: {{ friend.id }},
+                    duration: duration
+                }));
+            }
+            
+            console.log('Appel terminé (durée: ' + duration + 's)');
+        }
+        
+        // Fonction pour activer/désactiver le micro
+        function toggleMute() {
+            isMuted = !isMuted;
+            updateMuteButton();
+            
+            console.log('Micro ' + (isMuted ? 'coupé' : 'activé'));
+        }
+        
+        // Fonction pour activer/désactiver la vidéo
+        function toggleVideo() {
+            isVideoEnabled = !isVideoEnabled;
+            updateVideoButton();
+            
+            console.log('Vidéo ' + (isVideoEnabled ? 'activée' : 'désactivée'));
+        }
+        
+        // Mettre à jour l'icône du micro
+        function updateMuteButton() {
+            var muteBtn = document.getElementById('mute-btn');
+            var muteIcon = document.getElementById('mute-icon');
+            
+            if (muteBtn && muteIcon) {
+                if (isMuted) {
+                    muteBtn.classList.add('muted');
+                    muteIcon.textContent = '🔇';
+                } else {
+                    muteBtn.classList.remove('muted');
+                    muteIcon.textContent = '🔊';
+                }
+            }
+        }
+        
+        // Mettre à jour l'icône de la vidéo
+        function updateVideoButton() {
+            var videoIcon = document.getElementById('video-icon');
+            
+            if (videoIcon) {
+                videoIcon.textContent = isVideoEnabled ? '📹' : '📷';
+            }
+        }
+        
+        // Timer pour l'appel
+        function startCallTimer() {
+            callStartTime = new Date();
+            callTimer = setInterval(updateCallDuration, 1000);
+        }
+        
+        // Mettre à jour la durée de l'appel
+        function updateCallDuration() {
+            if (!callStartTime) return;
+            
+            var currentTime = new Date();
+            var duration = Math.floor((currentTime - callStartTime) / 1000);
+            
+            var minutes = Math.floor(duration / 60);
+            var seconds = duration % 60;
+            
+            var formattedTime = String(minutes).padStart(2, '0') + ':' + 
+                               String(seconds).padStart(2, '0');
+            
+            var durationElement = document.getElementById('call-duration');
+            if (durationElement) {
+                durationElement.textContent = formattedTime;
+            }
+        }
+        
+        // Simuler un appel entrant (pour tester)
+        function simulateIncomingCall(callerName, callerAvatar) {
+            if (isInCall) return;
+            
+            var incomingOverlay = document.getElementById('incoming-call-overlay');
+            var callerNameElement = document.getElementById('caller-name');
+            var callerAvatarElement = document.getElementById('caller-avatar');
+            
+            if (callerNameElement) callerNameElement.textContent = callerName;
+            if (callerAvatarElement) {
+                callerAvatarElement.textContent = callerAvatar || callerName.charAt(0).toUpperCase();
+            }
+            
+            incomingOverlay.style.display = 'flex';
+            
+            // Son de notification (simulation)
+            console.log('📞 Appel entrant de ' + callerName);
+        }
     </script>
 </body>
 </html>
