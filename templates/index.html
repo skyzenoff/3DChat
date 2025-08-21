@@ -18,8 +18,8 @@
 
         <main>
             <div class="room-actions">
-                <a href="{{ url_for('create_room') }}" class="btn btn-primary">Créer un salon</a>
-                <a href="{{ url_for('join_private') }}" class="btn btn-small">Salon privé</a>
+                <a href="{{ url_for('create_room') }}?user={{ user.username }}" class="btn btn-primary">Créer un salon</a>
+                <a href="{{ url_for('join_private') }}?user={{ user.username }}" class="btn btn-small">Salon privé</a>
             </div>
             
             <h2>Salons disponibles</h2>
@@ -32,7 +32,7 @@
                         <span>{{ room.message_count }} messages</span>
                         <span>{{ room.user_count }} connectés</span>
                     </div>
-                    <a href="{{ url_for('room', room_id=room.id) }}" class="btn btn-primary">Rejoindre</a>
+                    <a href="{{ url_for('room', room_id=room.id) }}?user={{ user.username }}" class="btn btn-primary">Rejoindre</a>
                 </div>
                 {% endfor %}
             </div>
@@ -40,19 +40,19 @@
 
         <!-- Barre de navigation en bas -->
         <nav class="bottom-nav">
-            <a href="{{ url_for('index') }}" class="nav-item active">
+            <a href="{{ url_for('index') }}?user={{ user.username }}" class="nav-item active">
                 <span class="nav-icon">🏠</span>
                 <span class="nav-label">Accueil</span>
             </a>
-            <a href="{{ url_for('private_messages') }}" class="nav-item">
+            <a href="{{ url_for('private_messages') }}?user={{ user.username }}" class="nav-item">
                 <span class="nav-icon">💬</span>
                 <span class="nav-label">Messages</span>
             </a>
-            <a href="{{ url_for('friends') }}" class="nav-item">
+            <a href="{{ url_for('friends') }}?user={{ user.username }}" class="nav-item">
                 <span class="nav-icon">👥</span>
                 <span class="nav-label">Amis</span>
             </a>
-            <a href="{{ url_for('profile') }}" class="nav-item">
+            <a href="{{ url_for('profile') }}?user={{ user.username }}" class="nav-item">
                 <span class="nav-icon">⚙️</span>
                 <span class="nav-label">Profil</span>
             </a>

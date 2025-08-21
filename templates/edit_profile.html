@@ -11,7 +11,7 @@
         <header>
             <h1>Modifier mon profil</h1>
             <div class="room-controls">
-                <a href="{{ url_for('profile') }}" class="btn btn-small">Annuler</a>
+                <a href="{{ url_for('profile') }}?user={{ user.username }}" class="btn btn-small">Annuler</a>
             </div>
         </header>
 

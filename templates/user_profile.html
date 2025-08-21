@@ -11,7 +11,7 @@
         <header>
             <h1>Profil utilisateur</h1>
             <div class="room-controls">
-                <a href="{{ url_for('friends') }}" class="btn btn-small">Retour</a>
+                <a href="{{ url_for('friends') }}?user={{ user.username }}" class="btn btn-small">Retour</a>
             </div>
         </header>
 
@@ -39,14 +39,14 @@
                 <!-- Actions selon la relation -->
                 <div class="profile-actions" style="display: flex; gap: 8px; margin-top: 16px;">
                     {% if is_friend %}
-                        <a href="{{ url_for('private_chat', username=profile_user.username) }}" class="btn btn-primary">💬 Envoyer un message</a>
+                        <a href="{{ url_for('private_chat', username=profile_user.username) }}?user={{ user.username }}" class="btn btn-primary">💬 Envoyer un message</a>
                     {% elif has_pending_request %}
                         <span class="btn" style="background-color: #72767d; cursor: not-allowed;">⏳ Demande envoyée</span>
                     {% elif has_received_request %}
-                        <a href="{{ url_for('accept_friend', user_id=profile_user.id) }}" class="btn btn-primary">✓ Accepter la demande</a>
-                        <a href="{{ url_for('decline_friend', user_id=profile_user.id) }}" class="btn" style="background-color: #f04747;">✗ Refuser</a>
+                        <a href="{{ url_for('accept_friend', user_id=profile_user.id) }}?user={{ user.username }}" class="btn btn-primary">✓ Accepter la demande</a>
+                        <a href="{{ url_for('decline_friend', user_id=profile_user.id) }}?user={{ user.username }}" class="btn" style="background-color: #f04747;">✗ Refuser</a>
                     {% else %}
-                        <form method="POST" action="{{ url_for('add_friend') }}" style="display: inline;">
+                        <form method="POST" action="{{ url_for('add_friend') }}?user={{ user.username }}" style="display: inline;">
                             <input type="hidden" name="username" value="{{ profile_user.username }}">
                             <button type="submit" class="btn btn-primary">👥 Envoyer une demande d'ami</button>
                         </form>

@@ -11,8 +11,8 @@
         <header>
             <h1>Mon Profil</h1>
             <div class="room-controls">
-                <a href="{{ url_for('index') }}" class="btn btn-small">Retour</a>
-                <a href="{{ url_for('edit_profile') }}" class="btn btn-primary">Modifier</a>
+                <a href="{{ url_for('index') }}?user={{ user.username }}" class="btn btn-small">Retour</a>
+                <a href="{{ url_for('edit_profile') }}?user={{ user.username }}" class="btn btn-primary">Modifier</a>
             </div>
         </header>
 
@@ -48,19 +48,19 @@
 
         <!-- Barre de navigation en bas -->
         <nav class="bottom-nav">
-            <a href="{{ url_for('index') }}" class="nav-item">
+            <a href="{{ url_for('index') }}?user={{ user.username }}" class="nav-item">
                 <span class="nav-icon">🏠</span>
                 <span class="nav-label">Accueil</span>
             </a>
-            <a href="{{ url_for('private_messages') }}" class="nav-item">
+            <a href="{{ url_for('private_messages') }}?user={{ user.username }}" class="nav-item">
                 <span class="nav-icon">💬</span>
                 <span class="nav-label">Messages</span>
             </a>
-            <a href="{{ url_for('friends') }}" class="nav-item">
+            <a href="{{ url_for('friends') }}?user={{ user.username }}" class="nav-item">
                 <span class="nav-icon">👥</span>
                 <span class="nav-label">Amis</span>
             </a>
-            <a href="{{ url_for('profile') }}" class="nav-item active">
+            <a href="{{ url_for('profile') }}?user={{ user.username }}" class="nav-item active">
                 <span class="nav-icon">⚙️</span>
                 <span class="nav-label">Profil</span>
             </a>

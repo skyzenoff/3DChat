@@ -11,7 +11,7 @@
         <header>
             <h1>Mes Amis</h1>
             <div class="room-controls">
-                <a href="{{ url_for('index') }}" class="btn btn-small">Retour</a>
+                <a href="{{ url_for('index') }}?user={{ user.username }}" class="btn btn-small">Retour</a>
             </div>
         </header>
 
@@ -29,7 +29,7 @@
             <!-- Formulaire d'ajout d'ami -->
             <div class="add-friend-form">
                 <h3>Ajouter un ami</h3>
-                <form method="POST" action="{{ url_for('add_friend') }}">
+                <form method="POST" action="{{ url_for('add_friend') }}?user={{ user.username }}">
                     <div class="form-group">
                         <input type="text" name="username" placeholder="Nom d'utilisateur" maxlength="20" required>
                         <button type="submit" class="btn btn-primary">Ajouter</button>
@@ -58,8 +58,8 @@
                             </div>
                         </div>
                         <div class="friend-actions">
-                            <a href="{{ url_for('accept_friend', user_id=requester.id) }}" class="btn btn-primary btn-small-icon">✓</a>
-                            <a href="{{ url_for('decline_friend', user_id=requester.id) }}" class="btn btn-small-icon" style="background-color: #f04747;">✗</a>
+                            <a href="{{ url_for('accept_friend', user_id=requester.id) }}?user={{ user.username }}" class="btn btn-primary btn-small-icon">✓</a>
+                            <a href="{{ url_for('decline_friend', user_id=requester.id) }}?user={{ user.username }}" class="btn btn-small-icon" style="background-color: #f04747;">✗</a>
                         </div>
                     </div>
                     {% endfor %}
@@ -74,7 +74,7 @@
                 <div class="friends-list">
                     {% for friend in friends %}
                     <div class="friend-card">
-                        <a href="{{ url_for('user_profile', username=friend.username) }}" style="display: contents;">
+                        <a href="{{ url_for('user_profile', username=friend.username) }}?user={{ user.username }}" style="display: contents;">
                             <div class="friend-avatar">
                                 {% if friend.profile_image %}
                                     <img src="{{ friend.profile_image }}" alt="Photo de {{ friend.username }}">
@@ -90,7 +90,7 @@
                             </div>
                         </a>
                         <div class="friend-actions">
-                            <a href="{{ url_for('private_chat', username=friend.username) }}" class="btn btn-primary btn-small-icon">💬</a>
+                            <a href="{{ url_for('private_chat', username=friend.username) }}?user={{ user.username }}" class="btn btn-primary btn-small-icon">💬</a>
                         </div>
                     </div>
                     {% endfor %}
@@ -105,19 +105,19 @@
 
         <!-- Barre de navigation en bas -->
         <nav class="bottom-nav">
-            <a href="{{ url_for('index') }}" class="nav-item">
+            <a href="{{ url_for('index') }}?user={{ user.username }}" class="nav-item">
                 <span class="nav-icon">🏠</span>
                 <span class="nav-label">Accueil</span>
             </a>
-            <a href="{{ url_for('private_messages') }}" class="nav-item">
+            <a href="{{ url_for('private_messages') }}?user={{ user.username }}" class="nav-item">
                 <span class="nav-icon">💬</span>
                 <span class="nav-label">Messages</span>
             </a>
-            <a href="{{ url_for('friends') }}" class="nav-item active">
+            <a href="{{ url_for('friends') }}?user={{ user.username }}" class="nav-item active">
                 <span class="nav-icon">👥</span>
                 <span class="nav-label">Amis</span>
             </a>
-            <a href="{{ url_for('profile') }}" class="nav-item">
+            <a href="{{ url_for('profile') }}?user={{ user.username }}" class="nav-item">
                 <span class="nav-icon">⚙️</span>
                 <span class="nav-label">Profil</span>
             </a>

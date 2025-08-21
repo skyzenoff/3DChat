@@ -9,7 +9,7 @@
 <body>
     <div class="container">
         <div class="chat-header">
-            <a href="{{ url_for('private_messages') }}" class="btn btn-small">← Retour</a>
+            <a href="{{ url_for('private_messages') }}?user={{ user.username }}" class="btn btn-small">← Retour</a>
             <div class="friend-avatar">
                 {% if friend.profile_image %}
                     <img src="{{ friend.profile_image }}" alt="Photo de {{ friend.username }}">
@@ -23,7 +23,7 @@
                     {{ '🟢 En ligne' if friend.status == 'online' else '⚫ Hors ligne' }}
                 </div>
             </div>
-            <a href="{{ url_for('user_profile', username=friend.username) }}" class="btn btn-small">Profil</a>
+            <a href="{{ url_for('user_profile', username=friend.username) }}?user={{ user.username }}" class="btn btn-small">Profil</a>
         </div>
 
         <div class="chat-messages" id="messages">
@@ -35,7 +35,7 @@
             {% endfor %}
         </div>
 
-        <form class="message-form" method="POST" action="{{ url_for('send_private_message', username=friend.username) }}">
+        <form class="message-form" method="POST" action="{{ url_for('send_private_message', username=friend.username) }}?user={{ user.username }}">
             <div class="form-group">
                 <input type="text" name="message" placeholder="Tapez votre message..." maxlength="500" required>
                 <button type="submit" class="btn btn-primary">Envoyer</button>
