@@ -77,6 +77,7 @@ make
 
 ### Problèmes de compilation courants :
 - **"Please set DEVKITARM"** → devkitPro n'est pas installé → [Guide Windows](WINDOWS-SETUP.md)
+- **"KEY_DPAD_UP undeclared"** → Code corrigé pour libctru moderne ✅ → [Détails](LIBCTRU-FIX.md)
 - **"syntax error near unexpected token"** → Espaces dans le chemin → [Fix chemins Windows](WINDOWS-PATH-FIX.md)
 - **"missing separator (TAB instead of spaces)"** → Makefile corrigé ✅
 - **Windows uniquement** → Utilisez `build-windows.bat` au lieu de make
@@ -108,6 +109,8 @@ make
 - D-PAD Haut/Bas : Sélectionner un message prédéfini
 - A : Confirmer et envoyer
 - B : Annuler
+
+*Note: Compatible avec libctru moderne (constantes KEY_DUP/KEY_DDOWN)*
 
 ### Premier lancement
 

@@ -651,10 +651,10 @@ void input_text(char* buffer, int max_length, const char* prompt) {
         hidScanInput();
         u32 kDown = hidKeysDown();
         
-        if (kDown & KEY_DPAD_UP && selected_msg > 0) {
+        if (kDown & KEY_DUP && selected_msg > 0) {
             selected_msg--;
         }
-        if (kDown & KEY_DPAD_DOWN && selected_msg < max_msgs - 1) {
+        if (kDown & KEY_DDOWN && selected_msg < max_msgs - 1) {
             selected_msg++;
         }
         if (kDown & KEY_A) {
@@ -672,7 +672,7 @@ void input_text(char* buffer, int max_length, const char* prompt) {
         }
         
         gfxFlushBuffers();
-        gfxSwapBuffers(GFX_TOP, GFX_LEFT);
+        gfxSwapBuffers();
         gspWaitForVBlank();
     }
 }
@@ -695,7 +695,7 @@ int main(int argc, char* argv[]) {
             hidScanInput();
             if (hidKeysDown() & KEY_A) break;
             gfxFlushBuffers();
-            gfxSwapBuffers(GFX_TOP, GFX_LEFT);
+            gfxSwapBuffers();
             gspWaitForVBlank();
         }
     } else {
@@ -706,7 +706,7 @@ int main(int argc, char* argv[]) {
             hidScanInput();
             if (hidKeysDown() & KEY_A) break;
             gfxFlushBuffers();
-            gfxSwapBuffers(GFX_TOP, GFX_LEFT);
+            gfxSwapBuffers();
             gspWaitForVBlank();
         }
     }
@@ -733,7 +733,6 @@ int main(int argc, char* argv[]) {
     while (aptMainLoop()) {
         hidScanInput();
         u32 kDown = hidKeysDown();
-        u32 kHeld = hidKeysHeld();
         
         if (kDown & KEY_START) break; // Quitter l'application
         
@@ -771,10 +770,10 @@ int main(int argc, char* argv[]) {
                 
             case STATE_ROOM_LIST:
                 draw_room_list();
-                if (kDown & KEY_DPAD_UP && selected_room > 0) {
+                if (kDown & KEY_DUP && selected_room > 0) {
                     selected_room--;
                 }
-                if (kDown & KEY_DPAD_DOWN && selected_room < room_count - 1) {
+                if (kDown & KEY_DDOWN && selected_room < room_count - 1) {
                     selected_room++;
                 }
                 if (kDown & KEY_A && room_count > 0) {
@@ -812,7 +811,7 @@ int main(int argc, char* argv[]) {
         }
         
         gfxFlushBuffers();
-        gfxSwapBuffers(GFX_TOP, GFX_LEFT);
+        gfxSwapBuffers();
         gspWaitForVBlank();
     }
     
