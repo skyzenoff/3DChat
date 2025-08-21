@@ -341,13 +341,20 @@ def add_friend():
         
     username = request.form.get('username', '').strip()
     
+    # Récupérer le paramètre utilisateur pour 3DS
+    user_param = request.args.get('user')
+    
     if username == user.username:
         flash('Vous ne pouvez pas vous ajouter vous-même')
+        if user_param:
+            return redirect(url_for('friends', user=user_param))
         return redirect(url_for('friends'))
     
     friend = User.query.filter_by(username=username).first()
     if not friend:
         flash('Utilisateur introuvable')
+        if user_param:
+            return redirect(url_for('friends', user=user_param))
         return redirect(url_for('friends'))
     
     # Vérifier s'il n'y a pas déjà une relation
@@ -361,6 +368,8 @@ def add_friend():
             flash('Vous êtes déjà amis')
         elif existing.status == 'pending':
             flash('Une demande d\'ami est déjà en attente')
+        if user_param:
+            return redirect(url_for('friends', user=user_param))
         return redirect(url_for('friends'))
     
     # Créer la demande d'ami
@@ -369,6 +378,8 @@ def add_friend():
     db.session.commit()
     
     flash(f'Demande d\'ami envoyée à {friend.username}')
+    if user_param:
+        return redirect(url_for('friends', user=user_param))
     return redirect(url_for('friends'))
 
 @app.route('/accept_friend/<int:user_id>')
@@ -389,6 +400,10 @@ def accept_friend(user_id):
         db.session.commit()
         flash('Demande d\'ami acceptée !')
     
+    # Préserver le paramètre utilisateur pour 3DS
+    user_param = request.args.get('user')
+    if user_param:
+        return redirect(url_for('friends', user=user_param))
     return redirect(url_for('friends'))
 
 @app.route('/decline_friend/<int:user_id>')
@@ -409,6 +424,10 @@ def decline_friend(user_id):
         db.session.commit()
         flash('Demande d\'ami refusée')
     
+    # Préserver le paramètre utilisateur pour 3DS
+    user_param = request.args.get('user')
+    if user_param:
+        return redirect(url_for('friends', user=user_param))
     return redirect(url_for('friends'))
 
 @app.route('/user/<username>')
