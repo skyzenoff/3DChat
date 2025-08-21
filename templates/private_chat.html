@@ -25,7 +25,7 @@
             </div>
             <a href="{{ url_for('user_profile', user_id=friend.id) }}?user={{ user.username }}" class="btn btn-small">Profil</a>
             <button onclick="startCall()" class="btn btn-small btn-call" id="call-btn">📞 Appeler</button>
-            <button onclick="simulateIncomingCall('{{ friend.username }}', '')" class="btn btn-small" style="background: #faa61a;">🔔 Test appel</button>
+            <button onclick="testCallNotification()" class="btn btn-small" style="background: #faa61a;">🔔 Test Notification</button>
         </div>
 
         <div class="chat-messages" id="messages">
@@ -105,6 +105,21 @@
                     ❌
                 </button>
             </div>
+        </div>
+    </div>
+
+    <!-- Popup de notification d'appel -->
+    <div class="call-notification-popup" id="call-notification-popup" style="display: none;">
+        <div class="notification-content">
+            <div class="notification-icon">📞</div>
+            <div class="notification-info">
+                <div class="notification-caller" id="notification-caller">Appel entrant</div>
+                <div class="notification-actions">
+                    <button onclick="acceptIncomingCall()" class="notification-btn accept">Répondre</button>
+                    <button onclick="dismissNotification()" class="notification-btn dismiss">Ignorer</button>
+                </div>
+            </div>
+            <button onclick="dismissNotification()" class="notification-close">✕</button>
         </div>
     </div>
 
@@ -288,6 +303,7 @@
             var callStatus = document.getElementById('call-status');
             
             incomingOverlay.style.display = 'none';
+            dismissNotification();
             callOverlay.style.display = 'flex';
             callStatus.textContent = 'Initialisation...';
             
@@ -324,8 +340,59 @@
         function declineCall() {
             var incomingOverlay = document.getElementById('incoming-call-overlay');
             incomingOverlay.style.display = 'none';
+            dismissNotification();
             
             console.log('Appel refusé');
+        }
+        
+        // Fonctions pour la popup de notification
+        function showCallNotification(callerName) {
+            var popup = document.getElementById('call-notification-popup');
+            var callerElement = document.getElementById('notification-caller');
+            
+            if (callerElement) {
+                callerElement.textContent = callerName + ' vous appelle';
+            }
+            
+            if (popup) {
+                popup.style.display = 'block';
+                popup.style.animation = 'slideInFromRight 0.3s ease-out';
+                
+                // Auto-dismiss après 30 secondes si pas de réaction
+                setTimeout(function() {
+                    if (popup.style.display !== 'none') {
+                        dismissNotification();
+                    }
+                }, 30000);
+            }
+        }
+        
+        function dismissNotification() {
+            var popup = document.getElementById('call-notification-popup');
+            
+            if (popup) {
+                popup.style.animation = 'slideOutToRight 0.3s ease-out';
+                setTimeout(function() {
+                    popup.style.display = 'none';
+                }, 300);
+            }
+        }
+        
+        function acceptIncomingCall() {
+            dismissNotification();
+            showIncomingCall();
+        }
+        
+        function showIncomingCall() {
+            var incomingOverlay = document.getElementById('incoming-call-overlay');
+            if (incomingOverlay) {
+                incomingOverlay.style.display = 'flex';
+            }
+        }
+        
+        // Fonction de test pour la popup de notification
+        function testCallNotification() {
+            showCallNotification('{{ friend.username }}');
         }
         
         // Fonction pour terminer l'appel
@@ -400,7 +467,7 @@
                 xhr.setRequestHeader('Content-Type', 'application/json');
                 
                 xhr.send(JSON.stringify({
-                    other_user_id: {{ friend.id }},
+                    other_user_id: friendId,
                     duration: duration
                 }));
             }
