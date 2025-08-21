@@ -582,10 +582,46 @@ def private_messages():
     if not user:
         return redirect(url_for('login'))
     
-    # Récupérer les amis pour la liste des conversations
-    friends = user.get_friends() if hasattr(user, 'get_friends') else []
-    
-    return render_template('private_messages.html', user=user, friends=friends)
+    try:
+        # Récupérer les amis et créer des objets conversation
+        friends = user.get_friends() if hasattr(user, 'get_friends') else []
+        conversations = []
+        
+        for friend in friends:
+            # Récupérer le dernier message avec cet ami
+            last_message = PrivateMessage.query.filter(
+                ((PrivateMessage.sender_id == user.id) & (PrivateMessage.receiver_id == friend.id)) |
+                ((PrivateMessage.sender_id == friend.id) & (PrivateMessage.receiver_id == user.id))
+            ).order_by(PrivateMessage.created_at.desc()).first()
+            
+            # Compter les messages non lus de cet ami
+            unread_count = PrivateMessage.query.filter(
+                PrivateMessage.sender_id == friend.id,
+                PrivateMessage.receiver_id == user.id,
+                PrivateMessage.is_read == False
+            ).count()
+            
+            # Créer un objet conversation simple
+            class Conversation:
+                def __init__(self):
+                    self.friend = None
+                    self.last_message = None
+                    self.unread_count = 0
+            
+            conversation = Conversation()
+            conversation.friend = friend
+            conversation.last_message = last_message
+            conversation.unread_count = unread_count
+            
+            conversations.append(conversation)
+        
+        # Trier par dernière activité (conversations avec messages récents en premier)
+        conversations.sort(key=lambda c: c.last_message.created_at if c.last_message else datetime.datetime.min, reverse=True)
+        
+        return render_template('private_messages.html', user=user, conversations=conversations)
+    except Exception as e:
+        print(f"Erreur private_messages: {e}")
+        return render_template('private_messages.html', user=user, conversations=[])
 
 @app.route('/private_chat/<int:friend_id>')
 @login_required
