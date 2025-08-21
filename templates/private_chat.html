@@ -75,6 +75,12 @@
             </div>
             
             <div class="call-duration" id="call-duration">00:00</div>
+            
+            <!-- Zone vidéo -->
+            <div class="video-container" id="video-container" style="display: none;">
+                <video id="local-video" autoplay muted playsinline></video>
+                <video id="remote-video" autoplay playsinline></video>
+            </div>
         </div>
     </div>
 
@@ -198,6 +204,10 @@
         var callStartTime = null;
         var isMuted = false;
         var isVideoEnabled = true;
+        var localStream = null;
+        var peerConnection = null;
+        var localVideo = null;
+        var remoteVideo = null;
         
         // Fonction pour démarrer un appel
         function startCall() {
@@ -209,43 +219,64 @@
             
             isInCall = true;
             callOverlay.style.display = 'flex';
-            callStatus.textContent = 'Appel en cours...';
+            callStatus.textContent = 'Initialisation...';
             callBtn.textContent = '📞 En appel';
             callBtn.disabled = true;
             
-            // Appeler l'API backend pour initier l'appel
-            var xhr = new XMLHttpRequest();
-            xhr.open('GET', '/initiate_call/{{ friend.id }}', true);
+            // Initialiser les éléments vidéo
+            localVideo = document.getElementById('local-video');
+            remoteVideo = document.getElementById('remote-video');
             
-            xhr.onreadystatechange = function() {
-                if (xhr.readyState === 4) {
-                    if (xhr.status === 200) {
-                        try {
-                            var response = JSON.parse(xhr.responseText);
-                            if (response.success) {
-                                // Simuler la connexion après 2 secondes
-                                setTimeout(function() {
-                                    callStatus.textContent = 'Connecté';
-                                    startCallTimer();
-                                    console.log('Appel connecté avec ' + response.friend_name);
-                                }, 2000);
-                            } else {
-                                console.error('Erreur appel:', response.error);
-                                endCall();
-                                alert('Erreur: ' + response.error);
-                            }
-                        } catch (e) {
-                            console.error('Erreur parsing réponse appel:', e);
-                            endCall();
-                        }
-                    } else {
-                        console.error('Erreur HTTP appel:', xhr.status);
-                        endCall();
+            // Demander accès caméra et micro
+            navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+                .then(function(stream) {
+                    localStream = stream;
+                    if (localVideo) {
+                        localVideo.srcObject = stream;
                     }
-                }
-            };
-            
-            xhr.send();
+                    
+                    callStatus.textContent = 'Appel en cours...';
+                    
+                    // Appeler l'API backend pour initier l'appel
+                    var xhr = new XMLHttpRequest();
+                    xhr.open('GET', '/initiate_call/{{ friend.id }}', true);
+                    
+                    xhr.onreadystatechange = function() {
+                        if (xhr.readyState === 4) {
+                            if (xhr.status === 200) {
+                                try {
+                                    var response = JSON.parse(xhr.responseText);
+                                    if (response.success) {
+                                        // Connecter après 2 secondes
+                                        setTimeout(function() {
+                                            callStatus.textContent = 'Connecté';
+                                            startCallTimer();
+                                            showVideoContainer();
+                                            console.log('Appel connecté avec ' + response.friend_name);
+                                        }, 2000);
+                                    } else {
+                                        console.error('Erreur appel:', response.error);
+                                        endCall();
+                                        alert('Erreur: ' + response.error);
+                                    }
+                                } catch (e) {
+                                    console.error('Erreur parsing réponse appel:', e);
+                                    endCall();
+                                }
+                            } else {
+                                console.error('Erreur HTTP appel:', xhr.status);
+                                endCall();
+                            }
+                        }
+                    };
+                    
+                    xhr.send();
+                })
+                .catch(function(error) {
+                    console.error('Erreur accès média:', error);
+                    alert('Impossible d\'accéder à la caméra/microphone. Vérifiez les permissions.');
+                    endCall();
+                });
         }
         
         // Fonction pour accepter un appel entrant
@@ -256,12 +287,32 @@
             
             incomingOverlay.style.display = 'none';
             callOverlay.style.display = 'flex';
-            callStatus.textContent = 'Connecté';
+            callStatus.textContent = 'Initialisation...';
             
-            isInCall = true;
-            startCallTimer();
+            // Initialiser les éléments vidéo
+            localVideo = document.getElementById('local-video');
+            remoteVideo = document.getElementById('remote-video');
             
-            console.log('Appel accepté');
+            // Demander accès caméra et micro
+            navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+                .then(function(stream) {
+                    localStream = stream;
+                    if (localVideo) {
+                        localVideo.srcObject = stream;
+                    }
+                    
+                    isInCall = true;
+                    callStatus.textContent = 'Connecté';
+                    startCallTimer();
+                    showVideoContainer();
+                    
+                    console.log('Appel accepté avec média');
+                })
+                .catch(function(error) {
+                    console.error('Erreur accès média:', error);
+                    alert('Impossible d\'accéder à la caméra/microphone.');
+                    endCall();
+                });
         }
         
         // Fonction pour refuser un appel entrant
@@ -277,6 +328,7 @@
             var callOverlay = document.getElementById('call-overlay');
             var incomingOverlay = document.getElementById('incoming-call-overlay');
             var callBtn = document.getElementById('call-btn');
+            var videoContainer = document.getElementById('video-container');
             
             // Calculer la durée si on était en appel
             var duration = 0;
@@ -284,9 +336,34 @@
                 duration = Math.floor((new Date() - callStartTime) / 1000);
             }
             
+            // Arrêter tous les flux média
+            if (localStream) {
+                localStream.getTracks().forEach(function(track) {
+                    track.stop();
+                });
+                localStream = null;
+            }
+            
+            // Fermer la connexion peer
+            if (peerConnection) {
+                peerConnection.close();
+                peerConnection = null;
+            }
+            
+            // Réinitialiser les vidéos
+            if (localVideo) {
+                localVideo.srcObject = null;
+            }
+            if (remoteVideo) {
+                remoteVideo.srcObject = null;
+            }
+            
             isInCall = false;
             callOverlay.style.display = 'none';
             incomingOverlay.style.display = 'none';
+            if (videoContainer) {
+                videoContainer.style.display = 'none';
+            }
             
             if (callTimer) {
                 clearInterval(callTimer);
@@ -323,16 +400,39 @@
         // Fonction pour activer/désactiver le micro
         function toggleMute() {
             isMuted = !isMuted;
-            updateMuteButton();
             
+            if (localStream) {
+                var audioTracks = localStream.getAudioTracks();
+                audioTracks.forEach(function(track) {
+                    track.enabled = !isMuted;
+                });
+            }
+            
+            updateMuteButton();
             console.log('Micro ' + (isMuted ? 'coupé' : 'activé'));
         }
         
         // Fonction pour activer/désactiver la vidéo
         function toggleVideo() {
             isVideoEnabled = !isVideoEnabled;
-            updateVideoButton();
             
+            if (localStream) {
+                var videoTracks = localStream.getVideoTracks();
+                videoTracks.forEach(function(track) {
+                    track.enabled = isVideoEnabled;
+                });
+            }
+            
+            var videoContainer = document.getElementById('video-container');
+            if (videoContainer) {
+                if (isVideoEnabled) {
+                    videoContainer.style.display = 'block';
+                } else {
+                    videoContainer.style.display = 'none';
+                }
+            }
+            
+            updateVideoButton();
             console.log('Vidéo ' + (isVideoEnabled ? 'activée' : 'désactivée'));
         }
         
@@ -403,6 +503,20 @@
             
             // Son de notification (simulation)
             console.log('📞 Appel entrant de ' + callerName);
+        }
+        
+        // Fonction pour afficher le conteneur vidéo
+        function showVideoContainer() {
+            var videoContainer = document.getElementById('video-container');
+            if (videoContainer && isVideoEnabled) {
+                videoContainer.style.display = 'block';
+            }
+        }
+        
+        // Vérifier la compatibilité WebRTC
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            console.warn('WebRTC n\'est pas supporté sur ce navigateur');
+            // L'appel fonctionnera en mode audio/vidéo simulé pour la 3DS
         }
     </script>
 </body>
