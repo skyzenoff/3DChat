@@ -11,28 +11,28 @@
         <header>
             <h1>3DChat</h1>
             <div class="user-info">
-                Connecté: <strong>{{ username }}</strong>
-                <a href="{{ url_for('logout') }}?user={{ username }}" class="btn btn-small">Déconnexion</a>
+                Connecté: <strong>{{ user.username }}</strong>
+                <a href="{{ url_for('logout') }}" class="btn btn-small">Déconnexion</a>
             </div>
         </header>
 
         <main>
             <div class="room-actions">
-                <a href="{{ url_for('create_room') }}?user={{ username }}" class="btn btn-primary">Créer un salon</a>
-                <a href="{{ url_for('join_private') }}?user={{ username }}" class="btn btn-small">Salon privé</a>
+                <a href="{{ url_for('create_room') }}?user={{ user.username }}" class="btn btn-primary">Créer un salon</a>
+                <a href="{{ url_for('join_private') }}?user={{ user.username }}" class="btn btn-small">Salon privé</a>
             </div>
             
             <h2>Salons disponibles</h2>
             
             <div class="rooms-list">
-                {% for room_id, room in rooms.items() %}
+                {% for room in rooms %}
                 <div class="room-card">
                     <h3>{{ room.name }}</h3>
                     <div class="room-stats">
-                        <span>{{ room.messages|length }} messages</span>
+                        <span>{{ room.message_count }} messages</span>
                         <span>{{ room.user_count }} connectés</span>
                     </div>
-                    <a href="{{ url_for('room', room_id=room_id) }}?user={{ username }}" class="btn btn-primary">Rejoindre</a>
+                    <a href="{{ url_for('room', room_id=room.id) }}?user={{ user.username }}" class="btn btn-primary">Rejoindre</a>
                 </div>
                 {% endfor %}
             </div>
@@ -40,9 +40,21 @@
 
         <!-- Barre de navigation en bas -->
         <nav class="bottom-nav">
-            <a href="{{ url_for('index') }}?user={{ username }}" class="nav-item active">
+            <a href="{{ url_for('index') }}?user={{ user.username }}" class="nav-item active">
                 <span class="nav-icon">🏠</span>
                 <span class="nav-label">Accueil</span>
+            </a>
+            <a href="{{ url_for('private_messages') }}?user={{ user.username }}" class="nav-item">
+                <span class="nav-icon">💬</span>
+                <span class="nav-label">Messages</span>
+            </a>
+            <a href="{{ url_for('friends') }}?user={{ user.username }}" class="nav-item">
+                <span class="nav-icon">👥</span>
+                <span class="nav-label">Amis</span>
+            </a>
+            <a href="{{ url_for('profile') }}?user={{ user.username }}" class="nav-item">
+                <span class="nav-icon">⚙️</span>
+                <span class="nav-label">Profil</span>
             </a>
         </nav>
     </div>

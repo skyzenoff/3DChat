@@ -28,16 +28,20 @@
 
                 <form method="POST">
                     <div class="form-group">
-                        <label for="username">Nom d'utilisateur (max 20 caractères):</label>
-                        <input type="text" id="username" name="username" maxlength="20" required>
+                        <label for="username">Nom d'utilisateur ou email:</label>
+                        <input type="text" id="username" name="username" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="password">Mot de passe:</label>
+                        <input type="password" id="password" name="password" required>
                     </div>
                     
                     <button type="submit" class="btn btn-primary btn-large">Se connecter</button>
                 </form>
                 
                 <div class="info">
-                    <p>Entrez simplement un nom d'utilisateur pour commencer à discuter!</p>
-                    <p>Compatible avec Nintendo 3DS/2DS</p>
+                    <p>Pas encore de compte ? <a href="{{ url_for('register') }}" style="color: #7289da;">S'inscrire</a></p>
                 </div>
             </div>
         </main>
