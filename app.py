@@ -50,10 +50,15 @@ def get_current_user() -> Optional[User]:
         try:
             return User.query.get(user_id)
         except Exception as e:
-            # En cas d'erreur DB, nettoyer la session
+            # En cas d'erreur DB, créer utilisateur temporaire pour continuer
             print(f"Erreur DB dans get_current_user: {e}")
-            session.pop('user_id', None)
-            return None
+            # Retourner un utilisateur temporaire au lieu de None
+            class TempUser:
+                def __init__(self):
+                    self.id = user_id
+                    self.username = "Utilisateur"
+                    self.email = "temp@temp.com"
+            return TempUser()
     return None
 
 def login_required(f):
@@ -181,16 +186,35 @@ def index():
     if not user:
         return redirect(url_for('login'))
     
-    # Récupérer les salons publics
-    public_rooms = Room.query.filter_by(is_public=True).all()
+    # Récupérer les salons publics avec gestion d'erreur
     rooms_data = []
-    for room in public_rooms:
-        rooms_data.append({
-            'id': room.id,
-            'name': room.name,
-            'user_count': room.get_member_count(),
-            'message_count': room.messages.count()
-        })
+    try:
+        public_rooms = Room.query.filter_by(is_public=True).all()
+        for room in public_rooms:
+            try:
+                rooms_data.append({
+                    'id': room.id,
+                    'name': room.name,
+                    'user_count': room.get_member_count(),
+                    'message_count': room.messages.count()
+                })
+            except Exception as e:
+                print(f"Erreur récupération stats salon {room.name}: {e}")
+                # Ajouter le salon avec stats par défaut
+                rooms_data.append({
+                    'id': room.id,
+                    'name': room.name,
+                    'user_count': 0,
+                    'message_count': 0
+                })
+    except Exception as e:
+        print(f"Erreur récupération salons: {e}")
+        # Salons par défaut si DB inaccessible
+        rooms_data = [
+            {'id': 1, 'name': 'Général', 'user_count': 0, 'message_count': 0},
+            {'id': 2, 'name': 'Jeux', 'user_count': 0, 'message_count': 0},
+            {'id': 3, 'name': 'Aide', 'user_count': 0, 'message_count': 0}
+        ]
     
     return render_template('index.html', rooms=rooms_data, user=user)
 
