@@ -145,7 +145,8 @@ def login():
                         print(f"Erreur DB lors de la mise à jour du statut: {e}")
                         # Continuer même si la mise à jour échoue
                     
-                    return redirect(url_for('login_success'))
+                    # Afficher directement la page de succès au lieu d'une redirection
+                    return render_template('login_success.html', user=user)
                 else:
                     print("Échec de connexion: mot de passe incorrect ou utilisateur inexistant")
                     flash('Nom d\'utilisateur/email ou mot de passe incorrect')
@@ -160,7 +161,14 @@ def login():
                     session['user_id'] = 1  # ID temporaire
                     session.permanent = True
                     print("Connexion simplifiée activée")
-                    return redirect(url_for('login_success'))
+                    # Créer utilisateur temporaire et afficher la page directement
+                    class TempUser:
+                        def __init__(self):
+                            self.id = 1
+                            self.username = "Utilisateur"
+                            self.email = "temp@temp.com"
+                    temp_user = TempUser()
+                    return render_template('login_success.html', user=temp_user)
                 else:
                     # Attendre un peu avant de réessayer
                     import time

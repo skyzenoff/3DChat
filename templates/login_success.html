@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Connexion réussie - 3DChat</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <!-- Refresh automatique vers l'accueil après 5 secondes -->
+    <meta http-equiv="refresh" content="5;url={{ url_for('index') }}">
 </head>
 <body>
     <div class="container">
