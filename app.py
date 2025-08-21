@@ -100,24 +100,40 @@ def login():
         username_or_email = request.form.get('username', '').strip()
         password = request.form.get('password', '')
         
-        # Chercher par nom d'utilisateur ou email
-        user = User.query.filter(
-            (User.username == username_or_email) | (User.email == username_or_email)
-        ).first()
+        print(f"Tentative de connexion: username='{username_or_email}', password='{password[:3]}...'")
         
-        if user and user.check_password(password):
-            session['user_id'] = user.id
-            session.permanent = True  # Activer session permanente pour 3DS
-            try:
-                user.last_seen = datetime.datetime.utcnow()
-                user.status = 'online'
-                db.session.commit()
-            except Exception as e:
-                print(f"Erreur DB lors de la mise à jour du statut: {e}")
-                # Continuer même si la mise à jour échoue
-            return redirect(url_for('index'))
-        else:
-            flash('Nom d\'utilisateur/email ou mot de passe incorrect')
+        if not username_or_email or not password:
+            flash('Veuillez remplir tous les champs')
+            return render_template('login.html')
+        
+        try:
+            # Chercher par nom d'utilisateur ou email
+            user = User.query.filter(
+                (User.username == username_or_email) | (User.email == username_or_email)
+            ).first()
+            
+            print(f"Utilisateur trouvé: {user.username if user else 'Aucun'}")
+            
+            if user and user.check_password(password):
+                session['user_id'] = user.id
+                session.permanent = True  # Activer session permanente pour 3DS
+                print(f"Connexion réussie pour l'utilisateur {user.username}, session ID: {user.id}")
+                
+                try:
+                    user.last_seen = datetime.datetime.utcnow()
+                    user.status = 'online'
+                    db.session.commit()
+                except Exception as e:
+                    print(f"Erreur DB lors de la mise à jour du statut: {e}")
+                    # Continuer même si la mise à jour échoue
+                
+                return redirect(url_for('index'))
+            else:
+                print("Échec de connexion: mot de passe incorrect ou utilisateur inexistant")
+                flash('Nom d\'utilisateur/email ou mot de passe incorrect')
+        except Exception as e:
+            print(f"Erreur lors de la connexion: {e}")
+            flash('Erreur de connexion, veuillez réessayer')
     
     return render_template('login.html')
 
