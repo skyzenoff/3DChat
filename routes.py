@@ -623,6 +623,60 @@ def private_messages():
         print(f"Erreur private_messages: {e}")
         return render_template('private_messages.html', user=user, conversations=[])
 
+@app.route('/get_conversations_update')
+@login_required
+def get_conversations_update():
+    """Endpoint pour mettre à jour les conversations en temps réel"""
+    user = get_current_user()
+    if not user or not hasattr(user, 'id'):
+        return jsonify([])
+    
+    try:
+        friends = user.get_friends() if hasattr(user, 'get_friends') else []
+        conversations_data = []
+        
+        for friend in friends:
+            # Récupérer le dernier message
+            last_message = PrivateMessage.query.filter(
+                ((PrivateMessage.sender_id == user.id) & (PrivateMessage.receiver_id == friend.id)) |
+                ((PrivateMessage.sender_id == friend.id) & (PrivateMessage.receiver_id == user.id))
+            ).order_by(PrivateMessage.created_at.desc()).first()
+            
+            # Compter les messages non lus
+            unread_count = PrivateMessage.query.filter(
+                PrivateMessage.sender_id == friend.id,
+                PrivateMessage.receiver_id == user.id,
+                PrivateMessage.is_read == False
+            ).count()
+            
+            # Créer l'objet conversation pour JSON
+            conv_data = {
+                'friend': {
+                    'id': friend.id,
+                    'username': friend.username,
+                    'profile_image': getattr(friend, 'profile_image', '')
+                },
+                'unread_count': unread_count,
+                'last_message': None
+            }
+            
+            if last_message:
+                conv_data['last_message'] = {
+                    'content': last_message.content,
+                    'time': last_message.created_at.strftime('%H:%M'),
+                    'is_from_user': last_message.sender_id == user.id
+                }
+            
+            conversations_data.append(conv_data)
+        
+        # Trier par dernière activité
+        conversations_data.sort(key=lambda c: c['last_message']['time'] if c['last_message'] else '00:00', reverse=True)
+        
+        return jsonify(conversations_data)
+    except Exception as e:
+        print(f"Erreur get_conversations_update: {e}")
+        return jsonify([])
+
 @app.route('/private_chat/<int:friend_id>')
 @login_required
 def private_chat(friend_id):

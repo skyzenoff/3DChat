@@ -81,5 +81,87 @@
             </a>
         </nav>
     </div>
+
+    <script>
+        // Détection 3DS
+        var is3DS = navigator.userAgent.indexOf('Nintendo 3DS') !== -1;
+        var pollingInterval;
+        
+        function updateConversations() {
+            var xhr = new XMLHttpRequest();
+            xhr.open('GET', '/get_conversations_update?user={{ user.username }}', true);
+            
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === 4 && xhr.status === 200) {
+                    try {
+                        var data = JSON.parse(xhr.responseText);
+                        updateConversationList(data);
+                    } catch (e) {
+                        console.log('Erreur parsing JSON:', e);
+                    }
+                }
+            };
+            
+            xhr.send();
+        }
+        
+        function updateConversationList(conversations) {
+            var conversationList = document.querySelector('.conversation-list');
+            if (!conversationList) return;
+            
+            var html = '';
+            conversations.forEach(function(conv) {
+                var unreadBadge = conv.unread_count > 0 ? 
+                    '<div class="unread-count">' + conv.unread_count + '</div>' : '';
+                var unreadClass = conv.unread_count > 0 ? 'conversation-unread' : '';
+                
+                var lastMessagePreview = 'Aucun message';
+                var lastMessageTime = '';
+                
+                if (conv.last_message) {
+                    var prefix = conv.last_message.is_from_user ? 'Vous: ' : '';
+                    lastMessagePreview = prefix + conv.last_message.content.substring(0, 50);
+                    if (conv.last_message.content.length > 50) {
+                        lastMessagePreview += '...';
+                    }
+                    lastMessageTime = conv.last_message.time;
+                }
+                
+                var avatarContent = conv.friend.profile_image ? 
+                    '<img src="' + conv.friend.profile_image + '" alt="Photo de ' + conv.friend.username + '">' :
+                    conv.friend.username.charAt(0).toUpperCase();
+                
+                html += '<a href="/private_chat/' + conv.friend.id + '?user={{ user.username }}" class="conversation-item ' + unreadClass + '">' +
+                    '<div class="friend-avatar">' + avatarContent + '</div>' +
+                    '<div class="conversation-content">' +
+                        '<div class="conversation-name">' + conv.friend.username + '</div>' +
+                        '<div class="conversation-preview">' + lastMessagePreview + '</div>' +
+                    '</div>' +
+                    '<div class="conversation-meta">' +
+                        lastMessageTime + unreadBadge +
+                    '</div>' +
+                '</a>';
+            });
+            
+            conversationList.innerHTML = html;
+        }
+        
+        // Polling adapté selon le navigateur
+        if (is3DS) {
+            // Polling plus léger pour 3DS
+            pollingInterval = setInterval(updateConversations, 5000);
+            console.log('3DS: Polling conversations toutes les 5s');
+        } else {
+            // Polling normal pour autres navigateurs
+            pollingInterval = setInterval(updateConversations, 3000);
+        }
+        
+        // Arrêter le polling quand on quitte la page
+        window.onbeforeunload = function() {
+            if (pollingInterval) {
+                clearInterval(pollingInterval);
+            }
+        };
+    </script>
 </body>
 </html>
