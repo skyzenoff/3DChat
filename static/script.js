@@ -17,6 +17,10 @@ var localStream;
 var peerConnection;
 var isInCall = false;
 
+// Variables pour le partage d'écran
+var screenStream;
+var isSharing = false;
+
 function startPolling(roomId, username) {
     currentRoom = roomId;
     currentUser = username;
@@ -211,6 +215,108 @@ function endVoiceCall() {
 function sendCallNotification(action) {
     var xhr = new XMLHttpRequest();
     xhr.open('POST', '/call_notification/' + currentRoom, true);
+    xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+    
+    var data = 'user=' + encodeURIComponent(currentUser) + 
+               '&action=' + encodeURIComponent(action);
+    
+    xhr.send(data);
+}
+
+function startScreenShare() {
+    if (!isModernBrowser) return;
+    
+    if (isSharing) {
+        stopScreenShare();
+        return;
+    }
+    
+    if (!navigator.mediaDevices.getDisplayMedia) {
+        alert('Partage d\'écran non supporté sur ce navigateur');
+        return;
+    }
+    
+    navigator.mediaDevices.getDisplayMedia({ video: true, audio: true })
+        .then(function(stream) {
+            screenStream = stream;
+            isSharing = true;
+            
+            // Mettre à jour l'interface
+            var shareBtn = document.getElementById('share-btn');
+            if (shareBtn) {
+                shareBtn.textContent = '🔴 Arrêter';
+                shareBtn.style.backgroundColor = '#f04747';
+            }
+            
+            // Afficher le stream localement
+            showLocalScreen(stream);
+            
+            // Notifier les autres utilisateurs
+            sendScreenNotification('start');
+            
+            // Écouter la fin du partage (fermeture de l'onglet de partage)
+            stream.getVideoTracks()[0].addEventListener('ended', function() {
+                stopScreenShare();
+            });
+        })
+        .catch(function(err) {
+            alert('Erreur partage d\'écran: ' + err.message);
+        });
+}
+
+function stopScreenShare() {
+    if (screenStream) {
+        screenStream.getTracks().forEach(track => track.stop());
+        screenStream = null;
+    }
+    
+    isSharing = false;
+    
+    // Mettre à jour l'interface
+    var shareBtn = document.getElementById('share-btn');
+    if (shareBtn) {
+        shareBtn.textContent = '🖥️ Partager';
+        shareBtn.style.backgroundColor = '#7289da';
+    }
+    
+    // Cacher l'aperçu local
+    hideLocalScreen();
+    
+    sendScreenNotification('stop');
+}
+
+function showLocalScreen(stream) {
+    var videoContainer = document.getElementById('screen-preview');
+    if (!videoContainer) {
+        // Créer le conteneur d'aperçu
+        videoContainer = document.createElement('div');
+        videoContainer.id = 'screen-preview';
+        videoContainer.className = 'screen-preview';
+        videoContainer.innerHTML = '<h4>Votre écran partagé :</h4><video id="local-screen" autoplay muted></video>';
+        
+        var chatPanel = document.querySelector('.chat-panel');
+        if (chatPanel) {
+            chatPanel.insertBefore(videoContainer, chatPanel.firstChild);
+        }
+    }
+    
+    var video = document.getElementById('local-screen');
+    if (video) {
+        video.srcObject = stream;
+        videoContainer.style.display = 'block';
+    }
+}
+
+function hideLocalScreen() {
+    var videoContainer = document.getElementById('screen-preview');
+    if (videoContainer) {
+        videoContainer.style.display = 'none';
+    }
+}
+
+function sendScreenNotification(action) {
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', '/screen_notification/' + currentRoom, true);
     xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
     
     var data = 'user=' + encodeURIComponent(currentUser) + 

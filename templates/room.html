@@ -42,6 +42,12 @@
                                 <br>
                                 🎤 <audio controls><source src="data:audio/wav;base64,{{ message.audio_data }}" type="audio/wav"></audio>
                             </div>
+                        {% elif message.type == 'system' %}
+                            <div class="message system">
+                                <span class="time">{{ message.timestamp }}</span>
+                                <br>
+                                {{ message.text }}
+                            </div>
                         {% else %}
                             <div class="message">
                                 <span class="author">{{ message.username }}</span>
@@ -65,6 +71,7 @@
                 <div class="voice-controls" id="voice-controls" style="display: none;">
                     <button type="button" id="voice-btn" class="btn btn-voice" onclick="startVoiceRecording()">🎤 Vocal</button>
                     <button type="button" id="call-btn" class="btn btn-call" onclick="startVoiceCall()">📞 Appel</button>
+                    <button type="button" id="share-btn" class="btn btn-share" onclick="startScreenShare()">🖥️ Partager</button>
                 </div>
                 
             </div>

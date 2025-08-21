@@ -168,6 +168,9 @@ def get_messages(room_id):
                 <span class="time">{msg["timestamp"]}</span><br>
                 🎤 <audio controls><source src="{audio_src}" type="audio/wav"></audio>
             </div>'''
+        elif msg.get('type') == 'system':
+            # Message système
+            html += f'<div class="message system"><span class="time">{msg["timestamp"]}</span><br>{msg.get("text", "")}</div>'
         else:
             # Message texte normal
             html += f'<div class="message"><span class="author">{msg["username"]}</span> <span class="time">{msg["timestamp"]}</span><br>{msg.get("text", "")}</div>'
@@ -301,6 +304,33 @@ def call_notification(room_id):
         message_text = f'📢 {username} a démarré un appel vocal'
     else:
         message_text = f'📢 {username} a terminé l\'appel vocal'
+    
+    message = {
+        'username': 'Système',
+        'text': message_text,
+        'type': 'system',
+        'timestamp': datetime.datetime.now().strftime('%H:%M')
+    }
+    rooms[room_id]['messages'].append(message)
+    
+    return 'OK', 200
+
+@app.route('/screen_notification/<room_id>', methods=['POST'])
+def screen_notification(room_id):
+    username = request.form.get('user')
+    action = request.form.get('action')  # 'start' ou 'stop'
+    
+    if not username or username not in connected_users or room_id not in rooms:
+        return 'Error', 400
+    
+    # Vérifier que c'est un salon privé
+    if rooms[room_id]['is_public']:
+        return 'Partage d\'\u00e9cran disponible uniquement dans les salons priv\u00e9s', 403
+    
+    if action == 'start':
+        message_text = f'🖥️ {username} partage son écran'
+    else:
+        message_text = f'🖥️ {username} a arrêté le partage d\'\u00e9cran'
     
     message = {
         'username': 'Système',
