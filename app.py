@@ -46,19 +46,29 @@ def generate_room_code():
 def get_current_user() -> Optional[User]:
     """Récupère l'utilisateur connecté depuis la session"""
     user_id = session.get('user_id')
+    print(f"Session user_id: {user_id}")
+    
     if user_id:
+        # D'abord essayer de récupérer l'utilisateur depuis la DB
         try:
-            return User.query.get(user_id)
+            user = User.query.get(user_id)
+            if user:
+                print(f"Utilisateur DB trouvé: {user.username}")
+                return user
         except Exception as e:
-            # En cas d'erreur DB, créer utilisateur temporaire pour continuer
             print(f"Erreur DB dans get_current_user: {e}")
-            # Retourner un utilisateur temporaire au lieu de None
-            class TempUser:
-                def __init__(self):
-                    self.id = user_id
-                    self.username = "Utilisateur"
-                    self.email = "temp@temp.com"
-            return TempUser()
+        
+        # Si échec DB, créer utilisateur temporaire mais garder la session
+        print("Création utilisateur temporaire")
+        class TempUser:
+            def __init__(self):
+                self.id = user_id
+                self.username = session.get('temp_username', 'Utilisateur')
+                self.email = "temp@temp.com"
+                
+        return TempUser()
+    
+    print("Pas d'user_id en session")
     return None
 
 def login_required(f):
@@ -134,8 +144,10 @@ def login():
                 
                 if user and user.check_password(password):
                     session['user_id'] = user.id
+                    session['temp_username'] = user.username  # Stocker le nom pour l'utilisateur temporaire
                     session.permanent = True  # Activer session permanente pour 3DS
                     print(f"Connexion réussie pour l'utilisateur {user.username}, session ID: {user.id}")
+                    print(f"Session avant connexion: {dict(session)}")
                     
                     try:
                         user.last_seen = datetime.datetime.utcnow()
