@@ -21,12 +21,12 @@
                 <p>Bienvenue <strong>{{ user.username }}</strong> !</p>
                 
                 <div style="margin: 20px 0;">
-                    <a href="{{ url_for('index') }}" class="btn btn-primary btn-large">Accéder aux salons</a>
+                    <a href="{{ url_for('index') }}?user={{ user.username }}" class="btn btn-primary btn-large">Accéder aux salons</a>
                 </div>
                 
                 <div style="margin: 20px 0;">
-                    <a href="{{ url_for('profile') }}" class="btn btn-small">Mon profil</a>
-                    <a href="{{ url_for('friends') }}" class="btn btn-small">Mes amis</a>
+                    <a href="{{ url_for('profile') }}?user={{ user.username }}" class="btn btn-small">Mon profil</a>
+                    <a href="{{ url_for('friends') }}?user={{ user.username }}" class="btn btn-small">Mes amis</a>
                 </div>
                 
                 <div style="margin: 20px 0;">

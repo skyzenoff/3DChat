@@ -44,12 +44,35 @@ def generate_room_code():
     return str(random.randint(100000, 999999))
 
 def get_current_user() -> Optional[User]:
-    """Récupère l'utilisateur connecté depuis la session"""
+    """Récupère l'utilisateur connecté depuis la session ou l'URL"""
     user_id = session.get('user_id')
-    print(f"Session user_id: {user_id}")
+    username_param = request.args.get('user')  # Paramètre d'URL pour 3DS
     
+    print(f"Session user_id: {user_id}, URL user: {username_param}")
+    
+    # Si on a un paramètre user dans l'URL (pour 3DS), l'utiliser en priorité
+    if username_param:
+        try:
+            user = User.query.filter_by(username=username_param).first()
+            if user:
+                print(f"Utilisateur trouvé via URL: {user.username}")
+                # Réactiver la session pour cet utilisateur
+                session['user_id'] = user.id
+                session['temp_username'] = user.username
+                session.permanent = True
+                return user
+        except Exception as e:
+            print(f"Erreur DB avec paramètre URL: {e}")
+            # Créer utilisateur temporaire avec le nom de l'URL
+            class TempUser:
+                def __init__(self):
+                    self.id = 999  # ID temporaire
+                    self.username = username_param
+                    self.email = "temp@temp.com"
+            return TempUser()
+    
+    # Sinon, utiliser la session normale
     if user_id:
-        # D'abord essayer de récupérer l'utilisateur depuis la DB
         try:
             user = User.query.get(user_id)
             if user:
@@ -68,7 +91,7 @@ def get_current_user() -> Optional[User]:
                 
         return TempUser()
     
-    print("Pas d'user_id en session")
+    print("Pas d'user_id en session et pas de paramètre URL")
     return None
 
 def login_required(f):
