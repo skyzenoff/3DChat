@@ -1,6 +1,10 @@
 import os
 import datetime
+import logging
 from flask import Flask, render_template, request, redirect, url_for, session, flash
+
+# Configuration du logging pour le debug
+logging.basicConfig(level=logging.DEBUG)
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SESSION_SECRET", "3ds-discord-secret-key")
@@ -24,19 +28,27 @@ connected_users = set()
 
 @app.route('/')
 def index():
+    app.logger.debug(f"Index route accessed, session: {dict(session)}")
     if 'username' not in session:
+        app.logger.debug("No username in session, redirecting to login")
         return redirect(url_for('login'))
+    app.logger.debug(f"User {session['username']} accessing index")
     return render_template('index.html', rooms=rooms, username=session['username'])
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+    app.logger.debug(f"Login route accessed, method: {request.method}")
     if request.method == 'POST':
         username = request.form.get('username', '').strip()
+        app.logger.debug(f"Username received: '{username}', length: {len(username) if username else 0}")
         if username and len(username) <= 20:
             session['username'] = username
             connected_users.add(username)
+            app.logger.debug(f"Session set for user: {username}")
+            app.logger.debug(f"Redirecting to index...")
             return redirect(url_for('index'))
         else:
+            app.logger.debug(f"Invalid username: '{username}'")
             flash('Nom d\'utilisateur invalide (max 20 caractères)')
     return render_template('login.html')
 
