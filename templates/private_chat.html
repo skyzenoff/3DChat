@@ -304,9 +304,12 @@
                     }
                     
                     isInCall = true;
-                    callStatus.textContent = 'Connecté';
+                    callStatus.textContent = 'En attente de connexion...';
                     startCallTimer();
                     showVideoContainer();
+                    
+                    // Démarrer le polling pour recevoir l'offre
+                    startSignalPolling();
                     
                     console.log('Appel accepté avec média');
                 })
@@ -523,17 +526,22 @@
         
         // Fonction pour créer une connexion WebRTC
         function createPeerConnection() {
+            console.log('Création connexion WebRTC');
             peerConnection = new RTCPeerConnection(iceServers);
             
             // Gérer les candidats ICE
             peerConnection.onicecandidate = function(event) {
                 if (event.candidate) {
+                    console.log('Candidat ICE local:', event.candidate.candidate);
                     sendSignal('ice-candidate', event.candidate);
+                } else {
+                    console.log('Collecte ICE terminée');
                 }
             };
             
             // Gérer le stream distant
             peerConnection.ontrack = function(event) {
+                console.log('Stream distant reçu:', event.streams[0]);
                 if (remoteVideo) {
                     remoteVideo.srcObject = event.streams[0];
                 }
@@ -541,15 +549,35 @@
                 // Appel connecté !
                 var callStatus = document.getElementById('call-status');
                 if (callStatus) {
-                    callStatus.textContent = 'Connecté';
+                    callStatus.textContent = 'Connecté - Audio/Vidéo actifs';
                 }
-                startCallTimer();
-                showVideoContainer();
             };
             
             // Gérer les changements de connexion
             peerConnection.onconnectionstatechange = function() {
-                console.log('État connexion:', peerConnection.connectionState);
+                var state = peerConnection.connectionState;
+                console.log('État connexion WebRTC:', state);
+                
+                var callStatus = document.getElementById('call-status');
+                if (callStatus) {
+                    if (state === 'connected') {
+                        callStatus.textContent = 'Connecté - Communication établie';
+                    } else if (state === 'connecting') {
+                        callStatus.textContent = 'Connexion en cours...';
+                    } else if (state === 'failed') {
+                        callStatus.textContent = 'Connexion échouée';
+                    }
+                }
+            };
+            
+            // Debug signaling state
+            peerConnection.onsignalingstatechange = function() {
+                console.log('État signalisation:', peerConnection.signalingState);
+            };
+            
+            // Debug ICE state
+            peerConnection.oniceconnectionstatechange = function() {
+                console.log('État ICE:', peerConnection.iceConnectionState);
             };
         }
         
@@ -606,11 +634,37 @@
                 createPeerConnection();
             }
             
-            peerConnection.setRemoteDescription(offer)
+            // S'assurer qu'on a le media local d'abord
+            if (!localStream) {
+                navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+                    .then(function(stream) {
+                        localStream = stream;
+                        if (localVideo) {
+                            localVideo.srcObject = stream;
+                        }
+                        
+                        // Maintenant traiter l'offre
+                        processOffer(offer);
+                    })
+                    .catch(function(error) {
+                        console.error('Erreur accès média pour réponse:', error);
+                    });
+            } else {
+                processOffer(offer);
+            }
+        }
+        
+        function processOffer(offer) {
+            console.log('Traitement offre reçue');
+            
+            peerConnection.setRemoteDescription(new RTCSessionDescription(offer))
                 .then(function() {
+                    console.log('Description distante définie');
+                    
                     // Ajouter notre stream local
                     if (localStream) {
                         localStream.getTracks().forEach(function(track) {
+                            console.log('Ajout track:', track.kind);
                             peerConnection.addTrack(track, localStream);
                         });
                     }
@@ -619,33 +673,50 @@
                     return peerConnection.createAnswer();
                 })
                 .then(function(answer) {
+                    console.log('Réponse créée');
                     return peerConnection.setLocalDescription(answer);
                 })
                 .then(function() {
+                    console.log('Description locale définie');
                     sendSignal('answer', peerConnection.localDescription);
+                    console.log('Réponse envoyée');
                 })
                 .catch(function(error) {
-                    console.error('Erreur gestion offre:', error);
+                    console.error('Erreur détaillée gestion offre:', error);
                 });
         }
         
         // Gérer une réponse reçue
         function handleAnswer(answer) {
-            if (peerConnection) {
-                peerConnection.setRemoteDescription(answer)
+            console.log('Réponse reçue:', answer);
+            
+            if (peerConnection && peerConnection.signalingState === 'have-local-offer') {
+                peerConnection.setRemoteDescription(new RTCSessionDescription(answer))
+                    .then(function() {
+                        console.log('Réponse WebRTC acceptée, état:', peerConnection.signalingState);
+                    })
                     .catch(function(error) {
-                        console.error('Erreur gestion réponse:', error);
+                        console.error('Erreur détaillée gestion réponse:', error);
                     });
+            } else {
+                console.warn('État incorrect pour accepter réponse:', 
+                    peerConnection ? peerConnection.signalingState : 'pas de connexion');
             }
         }
         
         // Gérer un candidat ICE reçu
         function handleIceCandidate(candidate) {
-            if (peerConnection) {
-                peerConnection.addIceCandidate(candidate)
+            if (peerConnection && peerConnection.remoteDescription) {
+                peerConnection.addIceCandidate(new RTCIceCandidate(candidate))
+                    .then(function() {
+                        console.log('Candidat ICE ajouté:', candidate.candidate);
+                    })
                     .catch(function(error) {
-                        console.error('Erreur ajout ICE candidate:', error);
+                        console.error('Erreur ajout ICE candidate:', error, candidate);
                     });
+            } else {
+                console.log('Candidat ICE en attente (pas de description distante)');
+                // Stocker pour plus tard si besoin
             }
         }
         

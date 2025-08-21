@@ -846,6 +846,8 @@ def webrtc_poll(target_user_id):
                 'data': active_calls[call_id]['offer'],
                 'from_user': target_user_id
             })
+            # Marquer l'offre comme traitée pour éviter les répétitions
+            active_calls[call_id]['offer'] = None
         
         # Vérifier si on a reçu une réponse
         if reverse_call_id in active_calls and active_calls[reverse_call_id]['answer']:
@@ -854,17 +856,25 @@ def webrtc_poll(target_user_id):
                 'data': active_calls[reverse_call_id]['answer'],
                 'from_user': target_user_id
             })
+            # Marquer la réponse comme traitée
+            active_calls[reverse_call_id]['answer'] = None
             
         # Vérifier les candidats ICE
         for call_key in [call_id, reverse_call_id]:
             if call_key in active_calls:
-                for candidate in active_calls[call_key]['ice_candidates']:
+                candidates_to_remove = []
+                for i, candidate in enumerate(active_calls[call_key]['ice_candidates']):
                     if candidate['from_user'] != user.id:
                         signals.append({
                             'type': 'ice-candidate',
                             'data': candidate['candidate'],
                             'from_user': candidate['from_user']
                         })
+                        candidates_to_remove.append(i)
+                
+                # Supprimer les candidats traités
+                for i in reversed(candidates_to_remove):
+                    active_calls[call_key]['ice_candidates'].pop(i)
         
         return jsonify({'signals': signals})
         
