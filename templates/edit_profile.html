@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modifier le profil - 3DChat</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Modifier mon profil</h1>
+            <div class="room-controls">
+                <a href="{{ url_for('profile') }}" class="btn btn-small">Annuler</a>
+            </div>
+        </header>
+
+        <main class="login-main">
+            <div class="login-form">
+                <h2>Paramètres du profil</h2>
+                
+                {% with messages = get_flashed_messages() %}
+                    {% if messages %}
+                        <div class="error">
+                            {% for message in messages %}
+                                <p>{{ message }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                {% endwith %}
+
+                <form method="POST" enctype="multipart/form-data">
+                    <div class="form-group">
+                        <label for="username">Nom d'utilisateur:</label>
+                        <input type="text" id="username" name="username" maxlength="20" value="{{ user.username }}" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="bio">Biographie:</label>
+                        <textarea id="bio" name="bio" rows="3" maxlength="500" placeholder="Parlez-nous de vous...">{{ user.bio }}</textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="status">Statut:</label>
+                        <select id="status" name="status">
+                            <option value="online" {% if user.status == 'online' %}selected{% endif %}>🟢 En ligne</option>
+                            <option value="offline" {% if user.status == 'offline' %}selected{% endif %}>⚫ Hors ligne</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="profile_image">Photo de profil:</label>
+                        <input type="file" id="profile_image" name="profile_image" accept="image/*">
+                        <div class="info">
+                            <p>Maximum 2MB - Formats: PNG, JPG, GIF</p>
+                        </div>
+                    </div>
+                    
+                    {% if user.profile_image %}
+                    <div class="form-group">
+                        <label>Aperçu actuel:</label>
+                        <div class="profile-image" style="width: 60px; height: 60px; margin: 8px 0;">
+                            <img src="{{ user.profile_image }}" alt="Photo actuelle">
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <button type="submit" class="btn btn-primary btn-large">Sauvegarder</button>
+                </form>
+            </div>
+        </main>
+    </div>
+</body>
+</html>

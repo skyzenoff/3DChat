@@ -2,383 +2,452 @@ import os
 import datetime
 import random
 import base64
-from flask import Flask, render_template, request, redirect, url_for, session, flash
+from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
+from flask_migrate import Migrate
+from typing import Optional
+from models import db, User, Friendship, PrivateMessage, Room, RoomMessage, RoomMember
+from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SESSION_SECRET", "3ds-discord-secret-key")
 
-# Configuration des sessions pour compatibilité 3DS - approche alternative
+# Configuration de la base de données
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# Initialiser SQLAlchemy et Flask-Migrate
+db.init_app(app)
+migrate = Migrate(app, db)
+
+# Configuration des sessions pour compatibilité 3DS
 app.config.update(
     SESSION_COOKIE_SECURE=False,
-    SESSION_COOKIE_HTTPONLY=False,  # Désactiver pour 3DS
-    SESSION_COOKIE_SAMESITE=None,   # Pas de restriction
+    SESSION_COOKIE_HTTPONLY=False,
+    SESSION_COOKIE_SAMESITE=None,
     SESSION_COOKIE_PATH='/',
     SESSION_COOKIE_DOMAIN=None,
     PERMANENT_SESSION_LIFETIME=86400
 )
 
-# Stockage en mémoire - salons par défaut
-rooms = {
-    "general": {"name": "Général", "messages": [], "is_public": True, "owner": None, "code": None},
-    "gaming": {"name": "Jeux", "messages": [], "is_public": True, "owner": None, "code": None},
-    "help": {"name": "Aide", "messages": [], "is_public": True, "owner": None, "code": None}
-}
-
-# Utilisateurs connectés par salon
-users_in_rooms = {
-    "general": set(),
-    "gaming": set(), 
-    "help": set()
-}
-
-# Tous les utilisateurs connectés
-connected_users = set()
-
-# Compteur pour générer des IDs uniques de salons
-room_counter = 0
-
 def generate_room_code():
     """Génère un code à 6 chiffres unique"""
     return str(random.randint(100000, 999999))
 
-@app.route('/')
-def index():
-    username = request.args.get('user')
-    if not username or username not in connected_users:
-        return redirect(url_for('login'))
+def get_current_user() -> Optional[User]:
+    """Récupère l'utilisateur connecté depuis la session"""
+    user_id = session.get('user_id')
+    if user_id:
+        return User.query.get(user_id)
+    return None
+
+def login_required(f):
+    """Décorateur pour s'assurer que l'utilisateur est connecté"""
+    from functools import wraps
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not get_current_user():
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+# Routes d'authentification
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        username = request.form.get('username', '').strip()
+        email = request.form.get('email', '').strip()
+        password = request.form.get('password', '')
+        
+        # Validations
+        if len(username) < 3 or len(username) > 20:
+            flash('Le nom d\'utilisateur doit faire entre 3 et 20 caractères')
+            return render_template('register.html')
+        
+        if User.query.filter_by(username=username).first():
+            flash('Ce nom d\'utilisateur est déjà pris')
+            return render_template('register.html')
+        
+        if User.query.filter_by(email=email).first():
+            flash('Cette adresse email est déjà utilisée')
+            return render_template('register.html')
+        
+        if len(password) < 6:
+            flash('Le mot de passe doit faire au moins 6 caractères')
+            return render_template('register.html')
+        
+        # Créer l'utilisateur
+        user = User(username=username, email=email)
+        user.set_password(password)
+        db.session.add(user)
+        db.session.commit()
+        
+        # Connexion automatique
+        session['user_id'] = user.id
+        flash('Compte créé avec succès !')
+        return redirect(url_for('index'))
     
-    # Calculer le nombre d'utilisateurs par salon pour les salons publics
-    rooms_with_counts = {}
-    for room_id, room_data in rooms.items():
-        if room_data['is_public']:  # Seulement les salons publics
-            rooms_with_counts[room_id] = {
-                **room_data,
-                'user_count': len(users_in_rooms.get(room_id, set()))
-            }
-    
-    return render_template('index.html', rooms=rooms_with_counts, username=username)
+    return render_template('register.html')
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        username = request.form.get('username', '').strip()
-        if username and len(username) <= 20:
-            connected_users.add(username)
-            return redirect(url_for('index', user=username))
+        username_or_email = request.form.get('username', '').strip()
+        password = request.form.get('password', '')
+        
+        # Chercher par nom d'utilisateur ou email
+        user = User.query.filter(
+            (User.username == username_or_email) | (User.email == username_or_email)
+        ).first()
+        
+        if user and user.check_password(password):
+            session['user_id'] = user.id
+            user.last_seen = datetime.datetime.utcnow()
+            user.status = 'online'
+            db.session.commit()
+            return redirect(url_for('index'))
         else:
-            flash('Nom d\'utilisateur invalide (max 20 caractères)')
+            flash('Nom d\'utilisateur/email ou mot de passe incorrect')
+    
     return render_template('login.html')
 
 @app.route('/logout')
 def logout():
-    username = request.args.get('user')
-    if username and username in connected_users:
-        connected_users.discard(username)
-        # Retirer l'utilisateur de tous les salons et supprimer ses salons
-        _remove_user_from_all_rooms(username)
+    user = get_current_user()
+    if user:
+        user.status = 'offline'
+        user.last_seen = datetime.datetime.utcnow()
+        db.session.commit()
+    session.clear()
     return redirect(url_for('login'))
 
-def _remove_user_from_all_rooms(username):
-    """Retire l'utilisateur de tous les salons et supprime ses salons privés"""
-    rooms_to_delete = []
-    
-    for room_id, room_data in rooms.items():
-        # Retirer l'utilisateur du salon
-        if room_id in users_in_rooms:
-            users_in_rooms[room_id].discard(username)
-        
-        # Si l'utilisateur est propriétaire d'un salon privé, marquer pour suppression
-        if room_data['owner'] == username and not room_data['is_public']:
-            rooms_to_delete.append(room_id)
-    
-    # Supprimer les salons privés de l'utilisateur
-    for room_id in rooms_to_delete:
-        if room_id in rooms:
-            del rooms[room_id]
-        if room_id in users_in_rooms:
-            del users_in_rooms[room_id]
-
-@app.route('/room/<room_id>')
-def room(room_id):
-    username = request.args.get('user')
-    if not username or username not in connected_users:
+# Routes principales
+@app.route('/')
+@login_required
+def index():
+    user = get_current_user()
+    if not user:
         return redirect(url_for('login'))
     
-    if room_id not in rooms:
-        flash('Salon inexistant')
-        return redirect(url_for('index', user=username))
+    # Récupérer les salons publics
+    public_rooms = Room.query.filter_by(is_public=True).all()
+    rooms_data = []
+    for room in public_rooms:
+        rooms_data.append({
+            'id': room.id,
+            'name': room.name,
+            'user_count': room.get_member_count(),
+            'message_count': room.messages.count()
+        })
     
-    users_in_rooms[room_id].add(username)
+    return render_template('index.html', rooms=rooms_data, user=user)
+
+@app.route('/profile')
+@login_required
+def profile():
+    user = get_current_user()
+    if not user:
+        return redirect(url_for('login'))
+    return render_template('profile.html', user=user)
+
+@app.route('/profile/edit', methods=['GET', 'POST'])
+@login_required
+def edit_profile():
+    user = get_current_user()
+    if not user:
+        return redirect(url_for('login'))
     
-    # Garder seulement les 20 derniers messages pour les performances
-    messages = rooms[room_id]['messages'][-20:]
-    room_users = list(users_in_rooms[room_id])
+    if request.method == 'POST':
+        # Mettre à jour le profil
+        user.username = request.form.get('username', '').strip()[:20]
+        user.bio = request.form.get('bio', '').strip()[:500]
+        user.status = request.form.get('status', 'online')
+        
+        # Gérer l'upload de photo de profil
+        if 'profile_image' in request.files:
+            file = request.files['profile_image']
+            if file and file.filename:
+                # Vérifier le format
+                allowed_extensions = {'png', 'jpg', 'jpeg', 'gif'}
+                if '.' in file.filename and file.filename.rsplit('.', 1)[1].lower() in allowed_extensions:
+                    # Lire et encoder l'image en base64
+                    image_data = file.read()
+                    if len(image_data) <= 2 * 1024 * 1024:  # Max 2MB
+                        file_extension = file.filename.rsplit('.', 1)[1].lower()
+                        mime_type = f"image/{file_extension}"
+                        user.profile_image = f"data:{mime_type};base64," + base64.b64encode(image_data).decode('utf-8')
+                    else:
+                        flash('Image trop grande (max 2MB)')
+                        return render_template('edit_profile.html', user=user)
+                else:
+                    flash('Format d\'image non supporté')
+                    return render_template('edit_profile.html', user=user)
+        
+        db.session.commit()
+        flash('Profil mis à jour !')
+        return redirect(url_for('profile'))
+    
+    return render_template('edit_profile.html', user=user)
+
+@app.route('/friends')
+@login_required
+def friends():
+    user = get_current_user()
+    if not user:
+        return redirect(url_for('login'))
+        
+    friends = user.get_friends()
+    
+    # Demandes reçues
+    pending_requests = db.session.query(User).join(
+        Friendship, User.id == Friendship.requester_id
+    ).filter(Friendship.addressee_id == user.id, Friendship.status == 'pending').all()
+    
+    return render_template('friends.html', user=user, friends=friends, pending_requests=pending_requests)
+
+@app.route('/add_friend', methods=['POST'])
+@login_required
+def add_friend():
+    user = get_current_user()
+    if not user:
+        return redirect(url_for('login'))
+        
+    username = request.form.get('username', '').strip()
+    
+    if username == user.username:
+        flash('Vous ne pouvez pas vous ajouter vous-même')
+        return redirect(url_for('friends'))
+    
+    friend = User.query.filter_by(username=username).first()
+    if not friend:
+        flash('Utilisateur introuvable')
+        return redirect(url_for('friends'))
+    
+    # Vérifier s'il n'y a pas déjà une relation
+    existing = Friendship.query.filter(
+        ((Friendship.requester_id == user.id) & (Friendship.addressee_id == friend.id)) |
+        ((Friendship.requester_id == friend.id) & (Friendship.addressee_id == user.id))
+    ).first()
+    
+    if existing:
+        if existing.status == 'accepted':
+            flash('Vous êtes déjà amis')
+        elif existing.status == 'pending':
+            flash('Une demande d\'ami est déjà en attente')
+        return redirect(url_for('friends'))
+    
+    # Créer la demande d'ami
+    friendship = Friendship(requester_id=user.id, addressee_id=friend.id)
+    db.session.add(friendship)
+    db.session.commit()
+    
+    flash(f'Demande d\'ami envoyée à {friend.username}')
+    return redirect(url_for('friends'))
+
+@app.route('/accept_friend/<int:user_id>')
+@login_required
+def accept_friend(user_id):
+    user = get_current_user()
+    if not user:
+        return redirect(url_for('login'))
+        
+    friendship = Friendship.query.filter_by(
+        requester_id=user_id, 
+        addressee_id=user.id, 
+        status='pending'
+    ).first()
+    
+    if friendship:
+        friendship.status = 'accepted'
+        db.session.commit()
+        flash('Demande d\'ami acceptée !')
+    
+    return redirect(url_for('friends'))
+
+@app.route('/decline_friend/<int:user_id>')
+@login_required
+def decline_friend(user_id):
+    user = get_current_user()
+    if not user:
+        return redirect(url_for('login'))
+        
+    friendship = Friendship.query.filter_by(
+        requester_id=user_id, 
+        addressee_id=user.id, 
+        status='pending'
+    ).first()
+    
+    if friendship:
+        db.session.delete(friendship)
+        db.session.commit()
+        flash('Demande d\'ami refusée')
+    
+    return redirect(url_for('friends'))
+
+@app.route('/user/<username>')
+@login_required  
+def user_profile(username):
+    user = get_current_user()
+    if not user:
+        return redirect(url_for('login'))
+        
+    profile_user = User.query.filter_by(username=username).first_or_404()
+    
+    # Déterminer la relation
+    is_friend = user.is_friend_with(profile_user)
+    has_pending_request = user.has_sent_request_to(profile_user)
+    has_received_request = user.has_pending_request_from(profile_user)
+    
+    return render_template('user_profile.html', 
+                         user=user, 
+                         profile_user=profile_user,
+                         is_friend=is_friend,
+                         has_pending_request=has_pending_request,
+                         has_received_request=has_received_request)
+
+@app.route('/messages')
+@login_required
+def private_messages():
+    user = get_current_user()
+    if not user:
+        return redirect(url_for('login'))
+        
+    friends = user.get_friends()
+    
+    # Pour chaque ami, récupérer le dernier message
+    conversations = []
+    for friend in friends:
+        last_message = PrivateMessage.query.filter(
+            ((PrivateMessage.sender_id == user.id) & (PrivateMessage.receiver_id == friend.id)) |
+            ((PrivateMessage.sender_id == friend.id) & (PrivateMessage.receiver_id == user.id))
+        ).order_by(PrivateMessage.created_at.desc()).first()
+        
+        unread_count = PrivateMessage.query.filter(
+            PrivateMessage.sender_id == friend.id,
+            PrivateMessage.receiver_id == user.id,
+            PrivateMessage.is_read == False
+        ).count()
+        
+        conversations.append({
+            'friend': friend,
+            'last_message': last_message,
+            'unread_count': unread_count
+        })
+    
+    # Trier par dernier message
+    conversations.sort(key=lambda x: x['last_message'].created_at if x['last_message'] else datetime.datetime.min, reverse=True)
+    
+    return render_template('private_messages.html', user=user, conversations=conversations)
+
+@app.route('/chat/<username>')
+@login_required
+def private_chat(username):
+    user = get_current_user()
+    if not user:
+        return redirect(url_for('login'))
+        
+    friend = User.query.filter_by(username=username).first_or_404()
+    
+    # Vérifier qu'ils sont amis
+    if not user.is_friend_with(friend):
+        flash('Vous devez être amis pour envoyer des messages')
+        return redirect(url_for('friends'))
+    
+    # Marquer les messages comme lus
+    PrivateMessage.query.filter(
+        PrivateMessage.sender_id == friend.id,
+        PrivateMessage.receiver_id == user.id,
+        PrivateMessage.is_read == False
+    ).update({'is_read': True})
+    db.session.commit()
+    
+    # Récupérer les messages
+    messages = PrivateMessage.query.filter(
+        ((PrivateMessage.sender_id == user.id) & (PrivateMessage.receiver_id == friend.id)) |
+        ((PrivateMessage.sender_id == friend.id) & (PrivateMessage.receiver_id == user.id))
+    ).order_by(PrivateMessage.created_at.asc()).limit(50).all()
+    
+    return render_template('private_chat.html', user=user, friend=friend, messages=messages)
+
+@app.route('/send_private_message/<username>', methods=['POST'])
+@login_required
+def send_private_message(username):
+    user = get_current_user()
+    if not user:
+        return redirect(url_for('login'))
+        
+    friend = User.query.filter_by(username=username).first_or_404()
+    
+    if not user.is_friend_with(friend):
+        return 'Non autorisé', 403
+    
+    content = request.form.get('message', '').strip()
+    if content and len(content) <= 500:
+        message = PrivateMessage(
+            sender_id=user.id,
+            receiver_id=friend.id,
+            content=content
+        )
+        db.session.add(message)
+        db.session.commit()
+    
+    return redirect(url_for('private_chat', username=username))
+
+# Routes pour les salons
+@app.route('/room/<int:room_id>')
+@login_required
+def room(room_id):
+    user = get_current_user()
+    if not user:
+        return redirect(url_for('login'))
+        
+    room = Room.query.get_or_404(room_id)
+    
+    # Vérifier l'accès
+    if not room.is_public:
+        # Pour les salons privés, vérifier que l'utilisateur est membre ou propriétaire
+        member = RoomMember.query.filter_by(room_id=room.id, user_id=user.id).first()
+        if not member and room.owner_id != user.id:
+            flash('Accès refusé à ce salon privé')
+            return redirect(url_for('index'))
+    
+    # Ajouter l'utilisateur au salon s'il n'y est pas déjà
+    if not RoomMember.query.filter_by(room_id=room.id, user_id=user.id).first():
+        member = RoomMember(room_id=room.id, user_id=user.id)
+        db.session.add(member)
+        db.session.commit()
+    
+    # Récupérer les messages récents
+    messages = room.get_recent_messages()
+    
+    # Récupérer les membres
+    members = db.session.query(User).join(RoomMember).filter(RoomMember.room_id == room.id).all()
     
     return render_template('room.html', 
-                         room=rooms[room_id], 
-                         room_id=room_id,
+                         room=room, 
                          messages=messages,
-                         users=room_users,
-                         username=username)
+                         members=members,
+                         user=user)
 
-@app.route('/send_message/<room_id>', methods=['POST'])
-def send_message(room_id):
-    username = request.form.get('user') or request.args.get('user')
-    if not username or username not in connected_users:
-        return redirect(url_for('login'))
-    
-    if room_id not in rooms:
-        return redirect(url_for('index', user=username))
-    
-    message_text = request.form.get('message', '').strip()
-    if message_text and len(message_text) <= 200:
-        message = {
-            'username': username,
-            'text': message_text,
-            'type': 'text',
-            'timestamp': datetime.datetime.now().strftime('%H:%M')
-        }
-        rooms[room_id]['messages'].append(message)
+# Initialisation de la base de données
+def init_db():
+    """Initialise la base de données avec les tables et données par défaut"""
+    with app.app_context():
+        db.create_all()
         
-        # Garder seulement les 50 derniers messages en mémoire
-        if len(rooms[room_id]['messages']) > 50:
-            rooms[room_id]['messages'] = rooms[room_id]['messages'][-50:]
-    
-    return redirect(url_for('room', room_id=room_id, user=username))
-
-@app.route('/get_messages/<room_id>')
-def get_messages(room_id):
-    """Endpoint pour récupérer les nouveaux messages (polling)"""
-    username = request.args.get('user')
-    if not username or username not in connected_users or room_id not in rooms:
-        return "[]"
-    
-    # Récupérer les 20 derniers messages
-    messages = rooms[room_id]['messages'][-20:]
-    users = list(users_in_rooms[room_id])
-    
-    # Retourner du HTML simple plutôt que du JSON pour compatibilité 3DS
-    html = ""
-    for msg in messages:
-        if msg.get('type') == 'voice':
-            # Message vocal
-            audio_src = f"data:audio/wav;base64,{msg['audio_data']}"
-            html += f'''<div class="message voice-message">
-                <span class="author">{msg["username"]}</span> 
-                <span class="time">{msg["timestamp"]}</span><br>
-                🎤 <audio controls><source src="{audio_src}" type="audio/wav"></audio>
-            </div>'''
-        elif msg.get('type') == 'image':
-            # Message image - différent selon le navigateur
-            user_agent = request.headers.get('User-Agent', '')
-            is_3ds = 'Nintendo 3DS' in user_agent
-            
-            if is_3ds:
-                # 3DS : juste le nom du fichier sans image
-                html += f'''<div class="message">
-                    <span class="author">{msg["username"]}</span> 
-                    <span class="time">{msg["timestamp"]}</span><br>
-                    📷 Image partagée: {msg.get("filename", "image")}
-                </div>'''
-            else:
-                # PC/Mobile : affichage complet avec image
-                image_src = f"data:{msg['mime_type']};base64,{msg['image_data']}"
-                html += f'''<div class="message image-message">
-                    <span class="author">{msg["username"]}</span> 
-                    <span class="time">{msg["timestamp"]}</span><br>
-                    📷 {msg.get("filename", "image")}<br>
-                    <img src="{image_src}" alt="Image" onclick="showImageModal(this.src)">
-                </div>'''
-        elif msg.get('type') == 'system':
-            # Message système
-            html += f'<div class="message system"><span class="time">{msg["timestamp"]}</span><br>{msg.get("text", "")}</div>'
-        else:
-            # Message texte normal
-            html += f'<div class="message"><span class="author">{msg["username"]}</span> <span class="time">{msg["timestamp"]}</span><br>{msg.get("text", "")}</div>'
-    
-    # Ajouter la liste des utilisateurs
-    html += '<div id="users-list">'
-    for user in users:
-        html += f'<span class="user-badge">{user}</span> '
-    html += '</div>'
-    
-    return html
-
-@app.route('/leave_room/<room_id>')
-def leave_room(room_id):
-    username = request.args.get('user')
-    if username and room_id in users_in_rooms:
-        users_in_rooms[room_id].discard(username)
+        # Créer les salons par défaut s'ils n'existent pas
+        default_rooms = [
+            {'name': 'Général', 'is_public': True},
+            {'name': 'Jeux', 'is_public': True},
+            {'name': 'Aide', 'is_public': True}
+        ]
         
-        # Si l'utilisateur est le propriétaire d'un salon privé, le supprimer
-        if (room_id in rooms and 
-            rooms[room_id]['owner'] == username and 
-            not rooms[room_id]['is_public']):
-            del rooms[room_id]
-            del users_in_rooms[room_id]
-            
-    return redirect(url_for('index', user=username))
-
-@app.route('/create_room', methods=['GET', 'POST'])
-def create_room():
-    username = request.args.get('user')
-    if not username or username not in connected_users:
-        return redirect(url_for('login'))
-    
-    if request.method == 'POST':
-        room_name = request.form.get('room_name', '').strip()
-        is_public = request.form.get('visibility') == 'public'
+        for room_data in default_rooms:
+            if not Room.query.filter_by(name=room_data['name']).first():
+                room = Room(**room_data)
+                db.session.add(room)
         
-        if room_name and len(room_name) <= 30:
-            global room_counter
-            room_counter += 1
-            room_id = f"room_{room_counter}"
-            
-            # Générer un code pour les salons privés
-            room_code = None if is_public else generate_room_code()
-            
-            rooms[room_id] = {
-                'name': room_name,
-                'messages': [],
-                'is_public': is_public,
-                'owner': username,
-                'code': room_code
-            }
-            
-            users_in_rooms[room_id] = set()
-            
-            if is_public:
-                return redirect(url_for('room', room_id=room_id, user=username))
-            else:
-                flash(f'Salon privé créé ! Code d\'accès : {room_code}')
-                return redirect(url_for('room', room_id=room_id, user=username))
-        else:
-            flash('Nom de salon invalide (max 30 caractères)')
-    
-    return render_template('create_room.html', username=username)
-
-@app.route('/join_private', methods=['GET', 'POST'])
-def join_private():
-    username = request.args.get('user')
-    if not username or username not in connected_users:
-        return redirect(url_for('login'))
-    
-    if request.method == 'POST':
-        room_code = request.form.get('room_code', '').strip()
-        
-        # Chercher le salon avec ce code
-        for room_id, room_data in rooms.items():
-            if (not room_data['is_public'] and 
-                room_data['code'] == room_code):
-                return redirect(url_for('room', room_id=room_id, user=username))
-        
-        flash('Code de salon invalide')
-    
-    return render_template('join_private.html', username=username)
-
-@app.route('/send_voice/<room_id>', methods=['POST'])
-def send_voice(room_id):
-    username = request.form.get('user') or request.args.get('user')
-    if not username or username not in connected_users:
-        return redirect(url_for('login'))
-    
-    if room_id not in rooms:
-        return redirect(url_for('index', user=username))
-    
-    # Vérifier que c'est un salon privé
-    if rooms[room_id]['is_public']:
-        return 'Messages vocaux disponibles uniquement dans les salons privés', 403
-    
-    voice_file = request.files.get('voice_message')
-    if voice_file:
-        # Encoder l'audio en base64 pour le stockage en mémoire
-        audio_data = voice_file.read()
-        audio_base64 = base64.b64encode(audio_data).decode('utf-8')
-        
-        message = {
-            'username': username,
-            'type': 'voice',
-            'audio_data': audio_base64,
-            'timestamp': datetime.datetime.now().strftime('%H:%M')
-        }
-        rooms[room_id]['messages'].append(message)
-        
-        # Garder seulement les 50 derniers messages en mémoire
-        if len(rooms[room_id]['messages']) > 50:
-            rooms[room_id]['messages'] = rooms[room_id]['messages'][-50:]
-    
-    return 'OK', 200
-
-@app.route('/call_notification/<room_id>', methods=['POST'])
-def call_notification(room_id):
-    username = request.form.get('user')
-    action = request.form.get('action')  # 'start' ou 'end'
-    
-    if not username or username not in connected_users or room_id not in rooms:
-        return 'Error', 400
-    
-    # Vérifier que c'est un salon privé
-    if rooms[room_id]['is_public']:
-        return 'Appels disponibles uniquement dans les salons privés', 403
-    
-    if action == 'start':
-        message_text = f'📢 {username} a démarré un appel vocal'
-    else:
-        message_text = f'📢 {username} a terminé l\'appel vocal'
-    
-    message = {
-        'username': 'Système',
-        'text': message_text,
-        'type': 'system',
-        'timestamp': datetime.datetime.now().strftime('%H:%M')
-    }
-    rooms[room_id]['messages'].append(message)
-    
-    return 'OK', 200
-
-@app.route('/send_image/<room_id>', methods=['POST'])
-def send_image(room_id):
-    username = request.form.get('user') or request.args.get('user')
-    if not username or username not in connected_users:
-        return 'Non autorisé', 401
-    
-    if room_id not in rooms:
-        return 'Salon inexistant', 404
-    
-    image_file = request.files.get('image')
-    if image_file and image_file.filename:
-        # Vérifier que c'est une image
-        allowed_extensions = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
-        file_extension = image_file.filename.rsplit('.', 1)[1].lower()
-        
-        if file_extension not in allowed_extensions:
-            return 'Format d\'image non supporté', 400
-        
-        # Encoder l'image en base64 pour le stockage en mémoire
-        image_data = image_file.read()
-        
-        # Vérifier la taille (max 5MB)
-        if len(image_data) > 5 * 1024 * 1024:
-            return 'Image trop grande (max 5MB)', 400
-        
-        image_base64 = base64.b64encode(image_data).decode('utf-8')
-        mime_type = f"image/{file_extension}"
-        
-        message = {
-            'username': username,
-            'type': 'image',
-            'image_data': image_base64,
-            'mime_type': mime_type,
-            'filename': image_file.filename,
-            'timestamp': datetime.datetime.now().strftime('%H:%M')
-        }
-        rooms[room_id]['messages'].append(message)
-        
-        # Garder seulement les 50 derniers messages en mémoire
-        if len(rooms[room_id]['messages']) > 50:
-            rooms[room_id]['messages'] = rooms[room_id]['messages'][-50:]
-    
-    return 'OK', 200
+        db.session.commit()
 
 if __name__ == "__main__":
+    init_db()
     app.run(host="0.0.0.0", port=5000, debug=True)

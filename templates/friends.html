@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mes Amis - 3DChat</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Mes Amis</h1>
+            <div class="room-controls">
+                <a href="{{ url_for('index') }}" class="btn btn-small">Retour</a>
+            </div>
+        </header>
+
+        <main>
+            {% with messages = get_flashed_messages() %}
+                {% if messages %}
+                    <div class="error">
+                        {% for message in messages %}
+                            <p>{{ message }}</p>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+
+            <!-- Formulaire d'ajout d'ami -->
+            <div class="add-friend-form">
+                <h3>Ajouter un ami</h3>
+                <form method="POST" action="{{ url_for('add_friend') }}">
+                    <div class="form-group">
+                        <input type="text" name="username" placeholder="Nom d'utilisateur" maxlength="20" required>
+                        <button type="submit" class="btn btn-primary">Ajouter</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Demandes reçues -->
+            {% if pending_requests %}
+            <div class="friends-section">
+                <h3>Demandes d'amis reçues ({{ pending_requests|length }})</h3>
+                <div class="friends-list">
+                    {% for requester in pending_requests %}
+                    <div class="friend-card">
+                        <div class="friend-avatar">
+                            {% if requester.profile_image %}
+                                <img src="{{ requester.profile_image }}" alt="Photo de {{ requester.username }}">
+                            {% else %}
+                                {{ requester.username[0].upper() }}
+                            {% endif %}
+                        </div>
+                        <div class="friend-info">
+                            <div class="friend-name">{{ requester.username }}</div>
+                            <div class="friend-status {{ 'online' if requester.status == 'online' else 'offline' }}">
+                                {{ '🟢 En ligne' if requester.status == 'online' else '⚫ Hors ligne' }}
+                            </div>
+                        </div>
+                        <div class="friend-actions">
+                            <a href="{{ url_for('accept_friend', user_id=requester.id) }}" class="btn btn-primary btn-small-icon">✓</a>
+                            <a href="{{ url_for('decline_friend', user_id=requester.id) }}" class="btn btn-small-icon" style="background-color: #f04747;">✗</a>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Liste des amis -->
+            <div class="friends-section">
+                <h3>Mes amis ({{ friends|length }})</h3>
+                {% if friends %}
+                <div class="friends-list">
+                    {% for friend in friends %}
+                    <div class="friend-card">
+                        <a href="{{ url_for('user_profile', username=friend.username) }}" style="display: contents;">
+                            <div class="friend-avatar">
+                                {% if friend.profile_image %}
+                                    <img src="{{ friend.profile_image }}" alt="Photo de {{ friend.username }}">
+                                {% else %}
+                                    {{ friend.username[0].upper() }}
+                                {% endif %}
+                            </div>
+                            <div class="friend-info">
+                                <div class="friend-name">{{ friend.username }}</div>
+                                <div class="friend-status {{ 'online' if friend.status == 'online' else 'offline' }}">
+                                    {{ '🟢 En ligne' if friend.status == 'online' else '⚫ Hors ligne' }}
+                                </div>
+                            </div>
+                        </a>
+                        <div class="friend-actions">
+                            <a href="{{ url_for('private_chat', username=friend.username) }}" class="btn btn-primary btn-small-icon">💬</a>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p style="color: #72767d; text-align: center; padding: 20px;">
+                    Aucun ami pour le moment. Ajoutez des amis avec leur nom d'utilisateur !
+                </p>
+                {% endif %}
+            </div>
+        </main>
+
+        <!-- Barre de navigation en bas -->
+        <nav class="bottom-nav">
+            <a href="{{ url_for('index') }}" class="nav-item">
+                <span class="nav-icon">🏠</span>
+                <span class="nav-label">Accueil</span>
+            </a>
+            <a href="{{ url_for('private_messages') }}" class="nav-item">
+                <span class="nav-icon">💬</span>
+                <span class="nav-label">Messages</span>
+            </a>
+            <a href="{{ url_for('friends') }}" class="nav-item active">
+                <span class="nav-icon">👥</span>
+                <span class="nav-label">Amis</span>
+            </a>
+            <a href="{{ url_for('profile') }}" class="nav-item">
+                <span class="nav-icon">⚙️</span>
+                <span class="nav-label">Profil</span>
+            </a>
+        </nav>
+    </div>
+</body>
+</html>

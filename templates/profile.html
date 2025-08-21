@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mon Profil - 3DChat</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Mon Profil</h1>
+            <div class="room-controls">
+                <a href="{{ url_for('index') }}" class="btn btn-small">Retour</a>
+                <a href="{{ url_for('edit_profile') }}" class="btn btn-primary">Modifier</a>
+            </div>
+        </header>
+
+        <main>
+            <div class="profile-container">
+                <div class="profile-header">
+                    <div class="profile-image">
+                        {% if user.profile_image %}
+                            <img src="{{ user.profile_image }}" alt="Photo de profil">
+                        {% else %}
+                            {{ user.username[0].upper() }}
+                        {% endif %}
+                    </div>
+                    <div class="profile-info">
+                        <h2>{{ user.username }}</h2>
+                        <div class="profile-status {{ 'online' if user.status == 'online' else 'offline' }}">
+                            {{ '🟢 En ligne' if user.status == 'online' else '⚫ Hors ligne' }}
+                        </div>
+                        <div class="profile-bio">
+                            {{ user.bio or "Aucune biographie" }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="profile-container">
+                <h3>Informations</h3>
+                <p><strong>Email:</strong> {{ user.email }}</p>
+                <p><strong>Membre depuis:</strong> {{ user.created_at.strftime('%d/%m/%Y') }}</p>
+                <p><strong>Dernière connexion:</strong> {{ user.last_seen.strftime('%d/%m/%Y à %H:%M') }}</p>
+            </div>
+        </main>
+
+        <!-- Barre de navigation en bas -->
+        <nav class="bottom-nav">
+            <a href="{{ url_for('index') }}" class="nav-item">
+                <span class="nav-icon">🏠</span>
+                <span class="nav-label">Accueil</span>
+            </a>
+            <a href="{{ url_for('private_messages') }}" class="nav-item">
+                <span class="nav-icon">💬</span>
+                <span class="nav-label">Messages</span>
+            </a>
+            <a href="{{ url_for('friends') }}" class="nav-item">
+                <span class="nav-icon">👥</span>
+                <span class="nav-label">Amis</span>
+            </a>
+            <a href="{{ url_for('profile') }}" class="nav-item active">
+                <span class="nav-icon">⚙️</span>
+                <span class="nav-label">Profil</span>
+            </a>
+        </nav>
+    </div>
+</body>
+</html>

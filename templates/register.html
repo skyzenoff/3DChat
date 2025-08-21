@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Connexion - 3DChat</title>
+    <title>Inscription - 3DChat</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
@@ -14,7 +14,7 @@
 
         <main class="login-main">
             <div class="login-form">
-                <h2>Connexion</h2>
+                <h2>Créer un compte</h2>
                 
                 {% with messages = get_flashed_messages() %}
                     {% if messages %}
@@ -28,20 +28,25 @@
 
                 <form method="POST">
                     <div class="form-group">
-                        <label for="username">Nom d'utilisateur ou email:</label>
-                        <input type="text" id="username" name="username" required>
+                        <label for="username">Nom d'utilisateur:</label>
+                        <input type="text" id="username" name="username" maxlength="20" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="email">Adresse email:</label>
+                        <input type="email" id="email" name="email" required>
                     </div>
                     
                     <div class="form-group">
                         <label for="password">Mot de passe:</label>
-                        <input type="password" id="password" name="password" required>
+                        <input type="password" id="password" name="password" minlength="6" required>
                     </div>
                     
-                    <button type="submit" class="btn btn-primary btn-large">Se connecter</button>
+                    <button type="submit" class="btn btn-primary btn-large">S'inscrire</button>
                 </form>
                 
                 <div class="info">
-                    <p>Pas encore de compte ? <a href="{{ url_for('register') }}" style="color: #7289da;">S'inscrire</a></p>
+                    <p>Déjà un compte ? <a href="{{ url_for('login') }}" style="color: #7289da;">Se connecter</a></p>
                 </div>
             </div>
         </main>

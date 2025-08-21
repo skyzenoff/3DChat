@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat avec {{ friend.username }} - 3DChat</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <div class="chat-header">
+            <a href="{{ url_for('private_messages') }}" class="btn btn-small">← Retour</a>
+            <div class="friend-avatar">
+                {% if friend.profile_image %}
+                    <img src="{{ friend.profile_image }}" alt="Photo de {{ friend.username }}">
+                {% else %}
+                    {{ friend.username[0].upper() }}
+                {% endif %}
+            </div>
+            <div class="friend-info">
+                <div class="friend-name">{{ friend.username }}</div>
+                <div class="friend-status {{ 'online' if friend.status == 'online' else 'offline' }}">
+                    {{ '🟢 En ligne' if friend.status == 'online' else '⚫ Hors ligne' }}
+                </div>
+            </div>
+            <a href="{{ url_for('user_profile', username=friend.username) }}" class="btn btn-small">Profil</a>
+        </div>
+
+        <div class="chat-messages" id="messages">
+            {% for message in messages %}
+            <div class="private-message {{ 'own' if message.sender_id == user.id else 'other' }}">
+                <div class="message-content">{{ message.content }}</div>
+                <div class="message-time">{{ message.created_at.strftime('%H:%M') }}</div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <form class="message-form" method="POST" action="{{ url_for('send_private_message', username=friend.username) }}">
+            <div class="form-group">
+                <input type="text" name="message" placeholder="Tapez votre message..." maxlength="500" required>
+                <button type="submit" class="btn btn-primary">Envoyer</button>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        // Auto-scroll vers le bas
+        window.onload = function() {
+            var messagesContainer = document.getElementById('messages');
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        };
+        
+        // Focus sur le champ de message
+        document.querySelector('input[name="message"]').focus();
+    </script>
+</body>
+</html>

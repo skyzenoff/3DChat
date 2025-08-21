@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ profile_user.username }} - 3DChat</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Profil utilisateur</h1>
+            <div class="room-controls">
+                <a href="{{ url_for('friends') }}" class="btn btn-small">Retour</a>
+            </div>
+        </header>
+
+        <main>
+            <div class="profile-container">
+                <div class="profile-header">
+                    <div class="profile-image">
+                        {% if profile_user.profile_image %}
+                            <img src="{{ profile_user.profile_image }}" alt="Photo de {{ profile_user.username }}">
+                        {% else %}
+                            {{ profile_user.username[0].upper() }}
+                        {% endif %}
+                    </div>
+                    <div class="profile-info">
+                        <h2>{{ profile_user.username }}</h2>
+                        <div class="profile-status {{ 'online' if profile_user.status == 'online' else 'offline' }}">
+                            {{ '🟢 En ligne' if profile_user.status == 'online' else '⚫ Hors ligne' }}
+                        </div>
+                        <div class="profile-bio">
+                            {{ profile_user.bio or "Aucune biographie" }}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Actions selon la relation -->
+                <div class="profile-actions" style="display: flex; gap: 8px; margin-top: 16px;">
+                    {% if is_friend %}
+                        <a href="{{ url_for('private_chat', username=profile_user.username) }}" class="btn btn-primary">💬 Envoyer un message</a>
+                    {% elif has_pending_request %}
+                        <span class="btn" style="background-color: #72767d; cursor: not-allowed;">⏳ Demande envoyée</span>
+                    {% elif has_received_request %}
+                        <a href="{{ url_for('accept_friend', user_id=profile_user.id) }}" class="btn btn-primary">✓ Accepter la demande</a>
+                        <a href="{{ url_for('decline_friend', user_id=profile_user.id) }}" class="btn" style="background-color: #f04747;">✗ Refuser</a>
+                    {% else %}
+                        <form method="POST" action="{{ url_for('add_friend') }}" style="display: inline;">
+                            <input type="hidden" name="username" value="{{ profile_user.username }}">
+                            <button type="submit" class="btn btn-primary">👥 Envoyer une demande d'ami</button>
+                        </form>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="profile-container">
+                <h3>Informations</h3>
+                <p><strong>Membre depuis:</strong> {{ profile_user.created_at.strftime('%d/%m/%Y') }}</p>
+                {% if profile_user.status == 'online' %}
+                    <p><strong>Statut:</strong> En ligne</p>
+                {% else %}
+                    <p><strong>Dernière connexion:</strong> {{ profile_user.last_seen.strftime('%d/%m/%Y à %H:%M') }}</p>
+                {% endif %}
+            </div>
+        </main>
+
+        <!-- Barre de navigation en bas -->
+        <nav class="bottom-nav">
+            <a href="{{ url_for('index') }}" class="nav-item">
+                <span class="nav-icon">🏠</span>
+                <span class="nav-label">Accueil</span>
+            </a>
+            <a href="{{ url_for('private_messages') }}" class="nav-item">
+                <span class="nav-icon">💬</span>
+                <span class="nav-label">Messages</span>
+            </a>
+            <a href="{{ url_for('friends') }}" class="nav-item">
+                <span class="nav-icon">👥</span>
+                <span class="nav-label">Amis</span>
+            </a>
+            <a href="{{ url_for('profile') }}" class="nav-item">
+                <span class="nav-icon">⚙️</span>
+                <span class="nav-label">Profil</span>
+            </a>
+        </nav>
+    </div>
+</body>
+</html>

@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Messages Privés - 3DChat</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Messages Privés</h1>
+            <div class="room-controls">
+                <a href="{{ url_for('index') }}" class="btn btn-small">Retour</a>
+            </div>
+        </header>
+
+        <main>
+            {% if conversations %}
+            <div class="conversation-list">
+                {% for conversation in conversations %}
+                <a href="{{ url_for('private_chat', username=conversation.friend.username) }}" class="conversation-item {{ 'conversation-unread' if conversation.unread_count > 0 else '' }}">
+                    <div class="friend-avatar">
+                        {% if conversation.friend.profile_image %}
+                            <img src="{{ conversation.friend.profile_image }}" alt="Photo de {{ conversation.friend.username }}">
+                        {% else %}
+                            {{ conversation.friend.username[0].upper() }}
+                        {% endif %}
+                    </div>
+                    <div class="conversation-content">
+                        <div class="conversation-name">{{ conversation.friend.username }}</div>
+                        <div class="conversation-preview">
+                            {% if conversation.last_message %}
+                                {% if conversation.last_message.sender_id == user.id %}
+                                    Vous: {{ conversation.last_message.content[:50] }}{% if conversation.last_message.content|length > 50 %}...{% endif %}
+                                {% else %}
+                                    {{ conversation.last_message.content[:50] }}{% if conversation.last_message.content|length > 50 %}...{% endif %}
+                                {% endif %}
+                            {% else %}
+                                Aucun message
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="conversation-meta">
+                        {% if conversation.last_message %}
+                            {{ conversation.last_message.created_at.strftime('%H:%M') }}
+                        {% endif %}
+                        {% if conversation.unread_count > 0 %}
+                            <div class="unread-count">{{ conversation.unread_count }}</div>
+                        {% endif %}
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div style="text-align: center; padding: 40px; color: #72767d;">
+                <p>Aucune conversation</p>
+                <p>Ajoutez des amis pour commencer à discuter !</p>
+                <a href="{{ url_for('friends') }}" class="btn btn-primary" style="margin-top: 16px;">Voir mes amis</a>
+            </div>
+            {% endif %}
+        </main>
+
+        <!-- Barre de navigation en bas -->
+        <nav class="bottom-nav">
+            <a href="{{ url_for('index') }}" class="nav-item">
+                <span class="nav-icon">🏠</span>
+                <span class="nav-label">Accueil</span>
+            </a>
+            <a href="{{ url_for('private_messages') }}" class="nav-item active">
+                <span class="nav-icon">💬</span>
+                <span class="nav-label">Messages</span>
+            </a>
+            <a href="{{ url_for('friends') }}" class="nav-item">
+                <span class="nav-icon">👥</span>
+                <span class="nav-label">Amis</span>
+            </a>
+            <a href="{{ url_for('profile') }}" class="nav-item">
+                <span class="nav-icon">⚙️</span>
+                <span class="nav-label">Profil</span>
+            </a>
+        </nav>
+    </div>
+</body>
+</html>

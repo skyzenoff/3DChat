@@ -736,3 +736,328 @@ footer {
         grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
     }
 }
+
+/* Barre de navigation en bas */
+.bottom-nav {
+    display: flex;
+    justify-content: space-around;
+    background-color: #23272a;
+    border-top: 2px solid #7289da;
+    padding: 8px 0;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+}
+
+.nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-decoration: none;
+    color: #72767d;
+    padding: 4px 8px;
+    border-radius: 4px;
+    min-width: 60px;
+    transition: all 0.2s ease;
+}
+
+.nav-item:hover {
+    color: #7289da;
+    background-color: #36393f;
+}
+
+.nav-item.active {
+    color: #7289da;
+    background-color: #40444b;
+}
+
+.nav-icon {
+    font-size: 18px;
+    margin-bottom: 2px;
+}
+
+.nav-label {
+    font-size: 10px;
+    text-align: center;
+}
+
+/* Ajuster l'espacement du body pour la nav */
+body {
+    padding-bottom: 60px;
+}
+
+/* Styles pour les profils */
+.profile-container {
+    background-color: #36393f;
+    padding: 16px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+}
+
+.profile-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.profile-image {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background-color: #7289da;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+    color: white;
+    overflow: hidden;
+}
+
+.profile-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+}
+
+.profile-info h2 {
+    color: #ffffff;
+    margin-bottom: 4px;
+}
+
+.profile-status {
+    color: #43b581;
+    font-size: 12px;
+    margin-bottom: 8px;
+}
+
+.profile-status.offline {
+    color: #72767d;
+}
+
+.profile-bio {
+    color: #b9bbbe;
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+/* Amis */
+.friends-section {
+    margin-bottom: 24px;
+}
+
+.friends-section h3 {
+    color: #7289da;
+    margin-bottom: 12px;
+    font-size: 16px;
+}
+
+.friends-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 12px;
+}
+
+.friend-card {
+    background-color: #36393f;
+    padding: 12px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.friend-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: #7289da;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 16px;
+    overflow: hidden;
+}
+
+.friend-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+}
+
+.friend-info {
+    flex: 1;
+}
+
+.friend-name {
+    color: #ffffff;
+    font-weight: bold;
+    margin-bottom: 2px;
+}
+
+.friend-status {
+    color: #43b581;
+    font-size: 11px;
+}
+
+.friend-status.offline {
+    color: #72767d;
+}
+
+.friend-actions {
+    display: flex;
+    gap: 6px;
+}
+
+.btn-small-icon {
+    padding: 4px 8px;
+    font-size: 10px;
+    min-height: 24px;
+    min-width: 40px;
+}
+
+/* Messages privés */
+.conversation-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.conversation-item {
+    background-color: #36393f;
+    padding: 12px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    text-decoration: none;
+    color: inherit;
+    transition: background-color 0.2s ease;
+}
+
+.conversation-item:hover {
+    background-color: #40444b;
+}
+
+.conversation-unread {
+    background-color: #40444b;
+    border-left: 3px solid #7289da;
+}
+
+.conversation-content {
+    flex: 1;
+}
+
+.conversation-name {
+    color: #ffffff;
+    font-weight: bold;
+    margin-bottom: 2px;
+}
+
+.conversation-preview {
+    color: #b9bbbe;
+    font-size: 12px;
+}
+
+.conversation-meta {
+    text-align: right;
+    font-size: 11px;
+    color: #72767d;
+}
+
+.unread-count {
+    background-color: #f04747;
+    color: white;
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-size: 10px;
+    margin-top: 4px;
+}
+
+/* Chat privé */
+.chat-header {
+    background-color: #36393f;
+    padding: 12px;
+    border-bottom: 1px solid #40444b;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px;
+    max-height: 60vh;
+}
+
+.private-message {
+    margin-bottom: 12px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    max-width: 80%;
+}
+
+.private-message.own {
+    background-color: #7289da;
+    color: white;
+    margin-left: auto;
+    text-align: right;
+}
+
+.private-message.other {
+    background-color: #36393f;
+    color: white;
+}
+
+.message-time {
+    font-size: 10px;
+    color: #b9bbbe;
+    margin-top: 4px;
+}
+
+.private-message.own .message-time {
+    color: #d4d9e7;
+}
+
+/* Formulaire d'ajout d'ami */
+.add-friend-form {
+    background-color: #36393f;
+    padding: 16px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+}
+
+.add-friend-form .form-group {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 0;
+}
+
+.add-friend-form input {
+    flex: 1;
+}
+
+/* Responsive pour la navigation */
+@media (max-width: 400px) {
+    .nav-label {
+        display: none;
+    }
+    
+    .nav-icon {
+        font-size: 20px;
+    }
+    
+    .bottom-nav {
+        padding: 6px 0;
+    }
+    
+    body {
+        padding-bottom: 50px;
+    }
+}
