@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=400, initial-scale=1.0">
+    <title>{{ room.name }} - 3DS Discord</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>{{ room.name }}</h1>
+            <div class="room-controls">
+                <a href="{{ url_for('index') }}" class="btn btn-small">Retour</a>
+                <a href="{{ url_for('leave_room', room_id=room_id) }}" class="btn btn-small">Quitter</a>
+            </div>
+        </header>
+
+        <div class="room-layout">
+            <div class="users-panel">
+                <h3>Connectés ({{ users|length }})</h3>
+                <div id="users-display">
+                    {% for user in users %}
+                        <span class="user-badge">{{ user }}</span>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="chat-panel">
+                <div class="messages-container" id="messages">
+                    {% for message in messages %}
+                        <div class="message">
+                            <span class="author">{{ message.username }}</span>
+                            <span class="time">{{ message.timestamp }}</span>
+                            <br>
+                            {{ message.text }}
+                        </div>
+                    {% endfor %}
+                </div>
+
+                <form class="message-form" method="POST" action="{{ url_for('send_message', room_id=room_id) }}">
+                    <div class="form-group">
+                        <input type="text" name="message" maxlength="200" placeholder="Tapez votre message..." required>
+                        <button type="submit" class="btn btn-primary">Envoyer</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <footer>
+            <p>Salon: {{ room.name }} | Utilisateur: {{ username }}</p>
+        </footer>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <script>
+        // Démarrer le polling pour ce salon
+        startPolling('{{ room_id }}');
+    </script>
+</body>
+</html>

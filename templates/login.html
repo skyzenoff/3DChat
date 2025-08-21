@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=400, initial-scale=1.0">
+    <title>Connexion - 3DS Discord</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>3DS Discord</h1>
+        </header>
+
+        <main class="login-main">
+            <div class="login-form">
+                <h2>Connexion</h2>
+                
+                {% with messages = get_flashed_messages() %}
+                    {% if messages %}
+                        <div class="error">
+                            {% for message in messages %}
+                                <p>{{ message }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                {% endwith %}
+
+                <form method="POST">
+                    <div class="form-group">
+                        <label for="username">Nom d'utilisateur:</label>
+                        <input type="text" id="username" name="username" maxlength="20" required>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary btn-large">Se connecter</button>
+                </form>
+                
+                <div class="info">
+                    <p>Entrez un nom d'utilisateur pour rejoindre les salons de discussion.</p>
+                    <p>Maximum 20 caractères.</p>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <p>Optimisé pour Nintendo 3DS/2DS</p>
+        </footer>
+    </div>
+</body>
+</html>
