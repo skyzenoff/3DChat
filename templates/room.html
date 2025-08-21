@@ -35,12 +35,21 @@
             <div class="chat-panel">
                 <div class="messages-container" id="messages">
                     {% for message in messages %}
-                        <div class="message">
-                            <span class="author">{{ message.username }}</span>
-                            <span class="time">{{ message.timestamp }}</span>
-                            <br>
-                            {{ message.text }}
-                        </div>
+                        {% if message.type == 'voice' %}
+                            <div class="message voice-message">
+                                <span class="author">{{ message.username }}</span>
+                                <span class="time">{{ message.timestamp }}</span>
+                                <br>
+                                🎤 <audio controls><source src="data:audio/wav;base64,{{ message.audio_data }}" type="audio/wav"></audio>
+                            </div>
+                        {% else %}
+                            <div class="message">
+                                <span class="author">{{ message.username }}</span>
+                                <span class="time">{{ message.timestamp }}</span>
+                                <br>
+                                {{ message.text }}
+                            </div>
+                        {% endif %}
                     {% endfor %}
                 </div>
 
@@ -51,6 +60,19 @@
                         <button type="submit" class="btn btn-primary">Envoyer</button>
                     </div>
                 </form>
+                
+                <!-- Contrôles vocaux (uniquement navigateurs modernes) -->
+                <div class="voice-controls" id="voice-controls" style="display: none;">
+                    <button type="button" id="voice-btn" class="btn btn-voice" onclick="startVoiceRecording()">🎤 Vocal</button>
+                    <button type="button" id="call-btn" class="btn btn-call" onclick="startVoiceCall()">📞 Appel</button>
+                </div>
+                
+                <script>
+                    // Afficher les contrôles vocaux seulement pour navigateurs modernes et salons privés
+                    if (isModernBrowser && {{ 'true' if not room.is_public else 'false' }}) {
+                        document.getElementById('voice-controls').style.display = 'flex';
+                    }
+                </script>
             </div>
         </div>
 

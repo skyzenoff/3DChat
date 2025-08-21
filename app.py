@@ -1,6 +1,7 @@
 import os
 import datetime
 import random
+import base64
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 
 app = Flask(__name__)
@@ -134,6 +135,7 @@ def send_message(room_id):
         message = {
             'username': username,
             'text': message_text,
+            'type': 'text',
             'timestamp': datetime.datetime.now().strftime('%H:%M')
         }
         rooms[room_id]['messages'].append(message)
@@ -158,7 +160,17 @@ def get_messages(room_id):
     # Retourner du HTML simple plutôt que du JSON pour compatibilité 3DS
     html = ""
     for msg in messages:
-        html += f'<div class="message"><span class="author">{msg["username"]}</span> <span class="time">{msg["timestamp"]}</span><br>{msg["text"]}</div>'
+        if msg.get('type') == 'voice':
+            # Message vocal
+            audio_src = f"data:audio/wav;base64,{msg['audio_data']}"
+            html += f'''<div class="message voice-message">
+                <span class="author">{msg["username"]}</span> 
+                <span class="time">{msg["timestamp"]}</span><br>
+                🎤 <audio controls><source src="{audio_src}" type="audio/wav"></audio>
+            </div>'''
+        else:
+            # Message texte normal
+            html += f'<div class="message"><span class="author">{msg["username"]}</span> <span class="time">{msg["timestamp"]}</span><br>{msg.get("text", "")}</div>'
     
     # Ajouter la liste des utilisateurs
     html += '<div id="users-list">'
@@ -239,6 +251,39 @@ def join_private():
         flash('Code de salon invalide')
     
     return render_template('join_private.html', username=username)
+
+@app.route('/send_voice/<room_id>', methods=['POST'])
+def send_voice(room_id):
+    username = request.form.get('user') or request.args.get('user')
+    if not username or username not in connected_users:
+        return redirect(url_for('login'))
+    
+    if room_id not in rooms:
+        return redirect(url_for('index', user=username))
+    
+    # Vérifier que c'est un salon privé
+    if rooms[room_id]['is_public']:
+        return 'Messages vocaux disponibles uniquement dans les salons privés', 403
+    
+    voice_file = request.files.get('voice_message')
+    if voice_file:
+        # Encoder l'audio en base64 pour le stockage en mémoire
+        audio_data = voice_file.read()
+        audio_base64 = base64.b64encode(audio_data).decode('utf-8')
+        
+        message = {
+            'username': username,
+            'type': 'voice',
+            'audio_data': audio_base64,
+            'timestamp': datetime.datetime.now().strftime('%H:%M')
+        }
+        rooms[room_id]['messages'].append(message)
+        
+        # Garder seulement les 50 derniers messages en mémoire
+        if len(rooms[room_id]['messages']) > 50:
+            rooms[room_id]['messages'] = rooms[room_id]['messages'][-50:]
+    
+    return 'OK', 200
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)

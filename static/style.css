@@ -270,6 +270,69 @@ main {
     flex-shrink: 0;
 }
 
+/* Contrôles vocaux */
+.voice-controls {
+    display: flex;
+    gap: 8px;
+    padding: 8px;
+    background-color: #36393f;
+    border-top: 1px solid #72767d;
+    justify-content: center;
+}
+
+.btn-voice {
+    background-color: #43b581;
+    color: white;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.btn-voice:hover {
+    background-color: #3ca374;
+}
+
+.btn-voice:active, .btn-voice.recording {
+    background-color: #f04747;
+}
+
+.btn-call {
+    background-color: #7289da;
+    color: white;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.btn-call:hover {
+    background-color: #677bc4;
+}
+
+/* Messages vocaux */
+.voice-message {
+    background-color: #43b581;
+    border-radius: 8px;
+    padding: 8px;
+    margin: 4px 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.voice-message audio {
+    max-width: 200px;
+    height: 30px;
+}
+
+.voice-duration {
+    font-size: 10px;
+    color: #b9bbbe;
+}
+
 /* Login */
 .login-form {
     background-color: #36393f;
