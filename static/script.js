@@ -2,8 +2,11 @@
 var pollingInterval;
 var currentRoom;
 
-function startPolling(roomId) {
+var currentUser;
+
+function startPolling(roomId, username) {
     currentRoom = roomId;
+    currentUser = username;
     
     // Arrêter le polling précédent s'il existe
     if (pollingInterval) {
@@ -17,11 +20,11 @@ function startPolling(roomId) {
 }
 
 function updateMessages() {
-    if (!currentRoom) return;
+    if (!currentRoom || !currentUser) return;
     
     // Utiliser XMLHttpRequest pour compatibilité 3DS (pas de fetch)
     var xhr = new XMLHttpRequest();
-    xhr.open('GET', '/get_messages/' + currentRoom, true);
+    xhr.open('GET', '/get_messages/' + currentRoom + '?user=' + encodeURIComponent(currentUser), true);
     
     xhr.onreadystatechange = function() {
         if (xhr.readyState === 4 && xhr.status === 200) {

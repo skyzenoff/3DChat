@@ -11,8 +11,8 @@
         <header>
             <h1>{{ room.name }}</h1>
             <div class="room-controls">
-                <a href="{{ url_for('index') }}" class="btn btn-small">Retour</a>
-                <a href="{{ url_for('leave_room', room_id=room_id) }}" class="btn btn-small">Quitter</a>
+                <a href="{{ url_for('index', user=username) }}" class="btn btn-small">Retour</a>
+                <a href="{{ url_for('leave_room', room_id=room_id, user=username) }}" class="btn btn-small">Quitter</a>
             </div>
         </header>
 
@@ -39,6 +39,7 @@
                 </div>
 
                 <form class="message-form" method="POST" action="{{ url_for('send_message', room_id=room_id) }}">
+                    <input type="hidden" name="user" value="{{ username }}">
                     <div class="form-group">
                         <input type="text" name="message" maxlength="200" placeholder="Tapez votre message..." required>
                         <button type="submit" class="btn btn-primary">Envoyer</button>
@@ -55,7 +56,7 @@
     <script src="{{ url_for('static', filename='script.js') }}"></script>
     <script>
         // Démarrer le polling pour ce salon
-        startPolling('{{ room_id }}');
+        startPolling('{{ room_id }}', '{{ username }}');
     </script>
 </body>
 </html>
