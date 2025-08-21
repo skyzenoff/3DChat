@@ -7,6 +7,7 @@
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
+User environment: Windows development with Nintendo 3DS homebrew compilation.
 
 ## System Architecture
 

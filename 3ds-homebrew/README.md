@@ -76,7 +76,8 @@ make
 ```
 
 ### Problèmes de compilation courants :
-- **"Please set DEVKITARM"** → devkitPro n'est pas installé → [Voir guide détaillé](COMPILATION-GUIDE.md)
+- **"Please set DEVKITARM"** → devkitPro n'est pas installé → [Guide Windows](WINDOWS-SETUP.md) | [Guide général](COMPILATION-GUIDE.md)
+- **"missing separator (TAB instead of spaces)"** → Makefile corrigé ✅
 - **Erreurs de liens** → Vérifiez que libctru est installé  
 - **Headers manquants** → Installez 3ds-dev complètement
 - **Environnement Replit** → Utilisez `./compile-replit.sh` pour la démonstration
