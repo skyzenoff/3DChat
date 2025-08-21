@@ -35,13 +35,6 @@
             {% endfor %}
         </div>
 
-        <!-- Bouton de rafraîchissement pour 3DS seulement -->
-        {% if request.headers.get('User-Agent', '') and 'Nintendo 3DS' in request.headers.get('User-Agent', '') %}
-        <div style="text-align: center; margin: 10px 0;">
-            <button onclick="updatePrivateMessages()" class="btn btn-small" style="background-color: #7289da;">🔄 Actualiser</button>
-        </div>
-        {% endif %}
-
         <form class="message-form" method="POST" action="{{ url_for('send_private_message', username=friend.username) }}?user={{ user.username }}">
             <div class="form-group">
                 <input type="text" name="message" placeholder="Tapez votre message..." maxlength="500" required>
