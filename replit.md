@@ -17,36 +17,38 @@ Preferred communication style: Simple, everyday language.
 - **No Modern JavaScript**: Avoids ES6+ features and modern APIs for maximum compatibility
 
 ### Backend Architecture
-- **Flask Web Framework**: Lightweight Python web framework for simple routing and templating
-- **Session-based Authentication**: Uses Flask sessions for user authentication without requiring passwords
-- **In-memory Data Storage**: All data (messages, users, rooms) stored in Python dictionaries and sets
-- **Stateless Design**: Each request is independent, making the app simple and predictable
+- **Flask Web Framework**: Full-featured web framework with PostgreSQL database integration
+- **User Authentication**: Complete registration/login system with password hashing
+- **PostgreSQL Database**: Persistent storage for users, messages, rooms, and relationships
+- **REST API**: JSON endpoints for native 3DS homebrew communication
 
 ### Data Management
-- **Room System**: Three predefined chat rooms (General, Gaming, Help) with message history
-- **User Presence**: Tracks connected users globally and per-room using Python sets
-- **Message Structure**: Simple dictionary-based messages with username, timestamp, and text
-- **Memory-only Persistence**: No database - all data resets on server restart
+- **Room System**: Dynamic chat rooms with database persistence and member management
+- **User Presence**: Online/offline status tracking with last seen timestamps
+- **Message Structure**: Rich messages with user references, timestamps, and room associations
+- **Database Persistence**: Full PostgreSQL schema with proper relationships and constraints
 
 ### Authentication & Authorization
-- **Simple Username System**: Users only need to provide a username (max 20 characters)
-- **Session Management**: Flask sessions track logged-in users
-- **No Password Protection**: Simplified for ease of use on 3DS devices
-- **Automatic Cleanup**: Users are removed from rooms and global user list on logout
+- **Complete User System**: Registration with username, email, and secure password hashing
+- **Session Management**: Flask-Login for secure user session management
+- **Friends System**: User relationships, friend requests, and private messaging
+- **Room Permissions**: Public/private rooms with member management
 
 ## External Dependencies
 
-### Python Packages
+### Python Packages (Web Server)
 - **Flask**: Core web framework for routing, templating, and session management
-- **Standard Library**: Uses only built-in Python modules (os, datetime) for core functionality
+- **PostgreSQL**: Database for user accounts, messages, and room data
+- **Flask-SQLAlchemy**: ORM for database operations
+- **Flask-Login**: User session management
 
-### Browser Compatibility
-- **Legacy JavaScript**: Compatible with older JavaScript engines found in 3DS browsers
-- **XMLHttpRequest**: Uses older AJAX methods instead of modern fetch API
-- **Basic CSS**: Avoids modern CSS features that may not be supported
+### Native 3DS Homebrew (C/libctru)
+- **libctru**: Core Nintendo 3DS development library
+- **No External Dependencies**: Current version works offline with demo data
+- **Future Network Support**: Will use libcurl and json-c for server communication
 
 ### Infrastructure
-- **No Database**: Intentionally avoids external database dependencies
-- **No WebSocket Server**: Uses HTTP polling instead of real-time connections
-- **Environment Variables**: Uses SESSION_SECRET for Flask session security
-- **Static File Serving**: Flask serves CSS and JavaScript files directly
+- **PostgreSQL Database**: Full-featured database for web and API
+- **REST API Endpoints**: JSON API for homebrew communication
+- **Session-based Web Auth**: Flask sessions for web interface
+- **Hybrid Architecture**: Web interface + native 3DS client

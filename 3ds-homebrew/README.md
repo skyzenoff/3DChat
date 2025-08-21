@@ -11,13 +11,25 @@ Un homebrew Nintendo 3DS/2DS pour utiliser Discord de manière native sur votre 
 - ✅ Compatible avec tous les modèles 3DS/2DS
 - ✅ Connexion sécurisée au serveur
 
+## Version actuelle : DÉMO OFFLINE
+
+Cette version fonctionne sans dépendances externes problématiques et inclut :
+- **Interface native 3DS** complète avec navigation
+- **3 salons prédéfinis** : Général, Gaming, Aide
+- **Messages de démo** interactifs 
+- **Pas de réseau requis** - fonctionne hors ligne
+
 ## Prérequis
 
-### Pour compiler :
+### Pour compiler (version démo) :
 - devkitPro avec devkitARM
-- libctru
-- libcurl (portlib)
-- json-c (portlib)
+- libctru (incluse avec devkitPro)
+
+### Pour compiler (version complète future) :
+- devkitPro avec devkitARM
+- libctru  
+- libcurl (portlib) - pour les requêtes HTTP
+- json-c (portlib) - pour le parsing JSON
 
 ### Pour utiliser :
 - Nintendo 3DS/2DS avec CFW (Custom Firmware)
@@ -40,11 +52,27 @@ Modifiez l'URL du serveur dans le fichier `source/main.c` ligne 10 :
 
 ## Compilation
 
+### Version démo (recommandée) :
+```bash
+# Installer devkitPro seulement
+sudo dkp-pacman -S 3ds-dev
+
+# Compiler la version démo (sans dépendances externes)
+./build.sh
+```
+
+### Version démo sans devkitPro :
+```bash
+# Créer les fichiers de démonstration
+./demo-compile.sh
+```
+
+### Version complète (future) :
 ```bash
 # Installer devkitPro
 sudo dkp-pacman -S 3ds-dev
 
-# Installer les dépendances
+# Installer les dépendances réseau (si disponibles)
 sudo dkp-pacman -S 3ds-curl 3ds-json-c
 
 # Compiler

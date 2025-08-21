@@ -1,6 +1,14 @@
 # Configuration du serveur pour le homebrew 3DS
 
-## Prérequis
+## Version actuelle : DÉMO OFFLINE
+
+La version actuelle du homebrew fonctionne en mode démo offline pour éviter les problèmes de dépendances (json-c, curl). Elle inclut :
+
+- **Données de démo** : 3 salons prédéfinis avec messages
+- **Pas de réseau** : Fonctionne sans connexion Internet  
+- **Interface complète** : Navigation, salons, messages, saisie
+
+## Pour la version connectée (future)
 
 Votre serveur Flask doit être accessible depuis Internet et supporter les requêtes HTTPS pour fonctionner avec le homebrew 3DS.
 

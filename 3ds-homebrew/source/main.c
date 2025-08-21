@@ -2,8 +2,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <curl/curl.h>
-#include <json-c/json.h>
 
 #define MAX_MESSAGE_LENGTH 500
 #define MAX_USERNAME_LENGTH 20
@@ -43,236 +41,156 @@ Room rooms[10];        // Buffer pour les salons
 int message_count = 0;
 int room_count = 0;
 
-// Structure pour la réponse HTTP
-struct HTTPResponse {
-    char *data;
-    size_t size;
-};
-
-// Callback pour écrire les données reçues
-static size_t WriteCallback(void *contents, size_t size, size_t nmemb, struct HTTPResponse *response) {
-    size_t total_size = size * nmemb;
-    response->data = realloc(response->data, response->size + total_size + 1);
-    if (response->data) {
-        memcpy(&(response->data[response->size]), contents, total_size);
-        response->size += total_size;
-        response->data[response->size] = 0;  // Null terminer
+// Parser JSON simple (sans librairie externe)
+char* find_json_value(const char* json, const char* key) {
+    char search_key[100];
+    snprintf(search_key, sizeof(search_key), "\"%s\":", key);
+    
+    char* start = strstr(json, search_key);
+    if (!start) return NULL;
+    
+    start += strlen(search_key);
+    while (*start == ' ' || *start == '\t') start++; // Skip whitespace
+    
+    if (*start == '"') {
+        start++; // Skip opening quote
+        char* end = strchr(start, '"');
+        if (!end) return NULL;
+        
+        int len = end - start;
+        char* result = malloc(len + 1);
+        strncpy(result, start, len);
+        result[len] = '\0';
+        return result;
+    } else {
+        // Number or boolean
+        char* end = start;
+        while (*end && *end != ',' && *end != '}' && *end != ']') end++;
+        
+        int len = end - start;
+        char* result = malloc(len + 1);
+        strncpy(result, start, len);
+        result[len] = '\0';
+        return result;
     }
-    return total_size;
 }
 
-// Fonction pour faire une requête HTTP GET
-char* http_get(const char* url) {
-    CURL *curl;
-    CURLcode res;
-    struct HTTPResponse response = {0};
-    
-    curl = curl_easy_init();
-    if (curl) {
-        curl_easy_setopt(curl, CURLOPT_URL, url);
-        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-        curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
-        curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);  // Timeout 10 secondes
-        
-        res = curl_easy_perform(curl);
-        curl_easy_cleanup(curl);
-        
-        if (res != CURLE_OK) {
-            if (response.data) {
-                free(response.data);
-            }
-            return NULL;
-        }
+// Fonction pour simuler une connexion (version offline pour démo)
+bool simulate_login(const char* username, const char* password) {
+    // Version démo - accepte n'importe quels identifiants non vides
+    if (strlen(username) > 0 && strlen(password) > 0) {
+        strncpy(current_user.username, username, MAX_USERNAME_LENGTH);
+        current_user.id = 1;
+        strcpy(current_user.status, "online");
+        return true;
     }
-    
-    return response.data;
+    return false;
 }
 
-// Fonction pour faire une requête HTTP POST
-char* http_post(const char* url, const char* data) {
-    CURL *curl;
-    CURLcode res;
-    struct HTTPResponse response = {0};
-    struct curl_slist *headers = NULL;
+// Données de démo pour les salons (version offline)
+void load_demo_rooms() {
+    room_count = 3;
     
-    curl = curl_easy_init();
-    if (curl) {
-        headers = curl_slist_append(headers, "Content-Type: application/json");
-        
-        curl_easy_setopt(curl, CURLOPT_URL, url);
-        curl_easy_setopt(curl, CURLOPT_POSTFIELDS, data);
-        curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-        curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
-        curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);
-        
-        res = curl_easy_perform(curl);
-        curl_slist_free_all(headers);
-        curl_easy_cleanup(curl);
-        
-        if (res != CURLE_OK) {
-            if (response.data) {
-                free(response.data);
-            }
-            return NULL;
-        }
-    }
+    // Salon 1: Général
+    rooms[0].id = 1;
+    strcpy(rooms[0].name, "Général");
+    rooms[0].user_count = 5;
+    rooms[0].message_count = 12;
+    rooms[0].is_public = true;
     
-    return response.data;
+    // Salon 2: Gaming
+    rooms[1].id = 2;
+    strcpy(rooms[1].name, "Gaming");
+    rooms[1].user_count = 3;
+    rooms[1].message_count = 8;
+    rooms[1].is_public = true;
+    
+    // Salon 3: Help
+    rooms[2].id = 3;
+    strcpy(rooms[2].name, "Aide");
+    rooms[2].user_count = 2;
+    rooms[2].message_count = 4;
+    rooms[2].is_public = true;
 }
 
-// Fonction pour se connecter au serveur
+// Messages de démo pour un salon
+void load_demo_messages(int room_id) {
+    switch (room_id) {
+        case 1: // Général
+            message_count = 4;
+            strcpy(messages[0].username, "Alice");
+            strcpy(messages[0].content, "Salut tout le monde!");
+            strcpy(messages[0].timestamp, "12:30");
+            
+            strcpy(messages[1].username, "Bob");
+            strcpy(messages[1].content, "Hey Alice! Comment ça va?");
+            strcpy(messages[1].timestamp, "12:32");
+            
+            strcpy(messages[2].username, "Charlie");
+            strcpy(messages[2].content, "Super cette app 3DS!");
+            strcpy(messages[2].timestamp, "12:35");
+            
+            strcpy(messages[3].username, current_user.username);
+            strcpy(messages[3].content, "Je teste le homebrew");
+            strcpy(messages[3].timestamp, "12:40");
+            break;
+            
+        case 2: // Gaming
+            message_count = 3;
+            strcpy(messages[0].username, "Gamer1");
+            strcpy(messages[0].content, "Qui joue à Mario Kart?");
+            strcpy(messages[0].timestamp, "11:20");
+            
+            strcpy(messages[1].username, "Gamer2");
+            strcpy(messages[1].content, "Moi! Code: 1234-5678");
+            strcpy(messages[1].timestamp, "11:22");
+            
+            strcpy(messages[2].username, current_user.username);
+            strcpy(messages[2].content, "J'arrive!");
+            strcpy(messages[2].timestamp, "11:25");
+            break;
+            
+        case 3: // Aide
+            message_count = 2;
+            strcpy(messages[0].username, "Helper");
+            strcpy(messages[0].content, "Comment installer un CFW?");
+            strcpy(messages[0].timestamp, "10:15");
+            
+            strcpy(messages[1].username, current_user.username);
+            strcpy(messages[1].content, "Regarde le guide 3ds.guide");
+            strcpy(messages[1].timestamp, "10:18");
+            break;
+            
+        default:
+            message_count = 0;
+            break;
+    }
+}
+
+// Version simplifiée pour la démo (pas de réseau)
 bool login(const char* username, const char* password) {
-    char url[256];
-    char post_data[512];
-    char* response;
-    
-    snprintf(url, sizeof(url), "%s/api/login", SERVER_URL);
-    snprintf(post_data, sizeof(post_data), 
-             "{\"username\":\"%s\",\"password\":\"%s\"}", 
-             username, password);
-    
-    response = http_post(url, post_data);
-    if (!response) {
-        return false;
-    }
-    
-    // Parser la réponse JSON
-    json_object *root = json_tokener_parse(response);
-    json_object *success_obj, *user_obj, *id_obj, *username_obj;
-    
-    bool login_success = false;
-    if (json_object_object_get_ex(root, "success", &success_obj)) {
-        if (json_object_get_boolean(success_obj)) {
-            if (json_object_object_get_ex(root, "user", &user_obj)) {
-                json_object_object_get_ex(user_obj, "id", &id_obj);
-                json_object_object_get_ex(user_obj, "username", &username_obj);
-                
-                current_user.id = json_object_get_int(id_obj);
-                strncpy(current_user.username, json_object_get_string(username_obj), MAX_USERNAME_LENGTH);
-                strcpy(current_user.status, "online");
-                
-                is_logged_in = true;
-                login_success = true;
-            }
-        }
-    }
-    
-    json_object_put(root);
-    free(response);
-    return login_success;
+    return simulate_login(username, password);
 }
 
-// Fonction pour récupérer les salons
 void fetch_rooms() {
-    char url[256];
-    char* response;
-    
-    snprintf(url, sizeof(url), "%s/api/rooms?user=%s", SERVER_URL, current_user.username);
-    response = http_get(url);
-    
-    if (!response) {
-        return;
-    }
-    
-    // Parser la réponse JSON
-    json_object *root = json_tokener_parse(response);
-    json_object *rooms_array;
-    
-    if (json_object_object_get_ex(root, "rooms", &rooms_array)) {
-        int array_length = json_object_array_length(rooms_array);
-        room_count = (array_length > 10) ? 10 : array_length;
-        
-        for (int i = 0; i < room_count; i++) {
-            json_object *room_obj = json_object_array_get_idx(rooms_array, i);
-            json_object *id_obj, *name_obj, *user_count_obj, *message_count_obj, *is_public_obj;
-            
-            json_object_object_get_ex(room_obj, "id", &id_obj);
-            json_object_object_get_ex(room_obj, "name", &name_obj);
-            json_object_object_get_ex(room_obj, "user_count", &user_count_obj);
-            json_object_object_get_ex(room_obj, "message_count", &message_count_obj);
-            json_object_object_get_ex(room_obj, "is_public", &is_public_obj);
-            
-            rooms[i].id = json_object_get_int(id_obj);
-            strncpy(rooms[i].name, json_object_get_string(name_obj), MAX_ROOM_NAME_LENGTH);
-            rooms[i].user_count = json_object_get_int(user_count_obj);
-            rooms[i].message_count = json_object_get_int(message_count_obj);
-            rooms[i].is_public = json_object_get_boolean(is_public_obj);
-        }
-    }
-    
-    json_object_put(root);
-    free(response);
+    load_demo_rooms();
 }
 
-// Fonction pour récupérer les messages d'un salon
 void fetch_messages(int room_id) {
-    char url[256];
-    char* response;
-    
-    snprintf(url, sizeof(url), "%s/api/room/%d/messages?user=%s", SERVER_URL, room_id, current_user.username);
-    response = http_get(url);
-    
-    if (!response) {
-        return;
-    }
-    
-    // Parser la réponse JSON
-    json_object *root = json_tokener_parse(response);
-    json_object *messages_array;
-    
-    if (json_object_object_get_ex(root, "messages", &messages_array)) {
-        int array_length = json_object_array_length(messages_array);
-        message_count = (array_length > 50) ? 50 : array_length;
-        
-        for (int i = 0; i < message_count; i++) {
-            json_object *msg_obj = json_object_array_get_idx(messages_array, i);
-            json_object *id_obj, *username_obj, *content_obj, *timestamp_obj;
-            
-            json_object_object_get_ex(msg_obj, "id", &id_obj);
-            json_object_object_get_ex(msg_obj, "username", &username_obj);
-            json_object_object_get_ex(msg_obj, "content", &content_obj);
-            json_object_object_get_ex(msg_obj, "timestamp", &timestamp_obj);
-            
-            messages[i].id = json_object_get_int(id_obj);
-            strncpy(messages[i].username, json_object_get_string(username_obj), MAX_USERNAME_LENGTH);
-            strncpy(messages[i].content, json_object_get_string(content_obj), MAX_MESSAGE_LENGTH);
-            strncpy(messages[i].timestamp, json_object_get_string(timestamp_obj), 19);
-        }
-    }
-    
-    json_object_put(root);
-    free(response);
+    load_demo_messages(room_id);
 }
 
-// Fonction pour envoyer un message
 bool send_message(int room_id, const char* content) {
-    char url[256];
-    char post_data[1024];
-    char* response;
-    
-    snprintf(url, sizeof(url), "%s/api/room/%d/send", SERVER_URL, room_id);
-    snprintf(post_data, sizeof(post_data), 
-             "{\"user\":\"%s\",\"message\":\"%s\"}", 
-             current_user.username, content);
-    
-    response = http_post(url, post_data);
-    if (!response) {
-        return false;
+    // Simuler l'ajout d'un message
+    if (message_count < 50) {
+        messages[message_count].id = message_count + 1;
+        strncpy(messages[message_count].username, current_user.username, MAX_USERNAME_LENGTH);
+        strncpy(messages[message_count].content, content, MAX_MESSAGE_LENGTH);
+        strcpy(messages[message_count].timestamp, "maintenant");
+        message_count++;
+        return true;
     }
-    
-    // Vérifier le succès
-    json_object *root = json_tokener_parse(response);
-    json_object *success_obj;
-    bool success = false;
-    
-    if (json_object_object_get_ex(root, "success", &success_obj)) {
-        success = json_object_get_boolean(success_obj);
-    }
-    
-    json_object_put(root);
-    free(response);
-    return success;
+    return false;
 }
 
 // Interface utilisateur - écran de connexion
@@ -374,22 +292,42 @@ void draw_chat_room() {
 void input_text(char* buffer, int max_length, const char* prompt) {
     consoleClear();
     printf("\n%s\n", prompt);
-    printf("Tapez votre texte puis appuyez sur START:\n");
-    printf("> ");
+    printf("Messages prédéfinis - utilisez D-PAD pour choisir:\n");
+    printf("\n");
     
-    // Simulation d'entrée de texte (dans un vrai homebrew 3DS, 
-    // il faudrait utiliser le clavier virtuel ou capturer les touches)
-    // Pour cet exemple, on utilise une entrée prédéfinie
-    strcpy(buffer, "Message par défaut");
-    printf("%s\n", buffer);
-    printf("\nAppuyez sur A pour continuer...");
+    const char* predefined_messages[] = {
+        "Salut tout le monde!",
+        "Comment allez-vous?", 
+        "Super ce homebrew!",
+        "Quelqu'un pour jouer?",
+        "Merci pour votre aide",
+        "À bientôt!"
+    };
+    
+    static int selected_msg = 0;
+    int max_msgs = 6;
+    
+    printf("Sélectionnez votre message:\n");
+    for (int i = 0; i < max_msgs; i++) {
+        if (i == selected_msg) {
+            printf(" > %s\n", predefined_messages[i]);
+        } else {
+            printf("   %s\n", predefined_messages[i]);
+        }
+    }
+    
+    printf("\nD-PAD: choisir, A: envoyer, B: annuler\n");
+    
+    // Dans une version complète, on gérerait la sélection ici
+    // Pour la démo, on prend le message sélectionné
+    strcpy(buffer, predefined_messages[selected_msg]);
 }
 
 int main(int argc, char* argv[]) {
     gfxInitDefault();
     consoleInit(GFX_TOP, NULL);
     
-    curl_global_init(CURL_GLOBAL_DEFAULT);
+    // Initialisation système
     
     // État de l'application
     enum {
@@ -483,7 +421,7 @@ int main(int argc, char* argv[]) {
         gspWaitForVBlank();
     }
     
-    curl_global_cleanup();
+    // Nettoyage
     gfxExit();
     return 0;
 }

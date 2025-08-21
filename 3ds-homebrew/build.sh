@@ -12,7 +12,7 @@ if [ -z "$DEVKITPRO" ]; then
     echo "   1. Téléchargez devkitpro-pacman depuis https://github.com/devkitPro/pacman/releases"
     echo "   2. Installez-le: sudo dpkg -i devkitpro-pacman.amd64.deb"
     echo "   3. Installez les outils 3DS: sudo dkp-pacman -S 3ds-dev"
-    echo "   4. Installez les librairies: sudo dkp-pacman -S 3ds-curl 3ds-json-c"
+    echo "   4. Exportez les variables: export DEVKITPRO=/opt/devkitpro"
     exit 1
 fi
 
@@ -45,9 +45,8 @@ else
     echo "❌ Erreur de compilation"
     echo "💡 Vérifiez que vous avez installé:"
     echo "   - 3ds-dev (outils de base)"
-    echo "   - 3ds-curl (pour les requêtes HTTP)"
-    echo "   - 3ds-json-c (pour parser JSON)"
+    echo "   - Variables d'environnement DEVKITPRO et DEVKITARM"
     echo ""
-    echo "Installation: sudo dkp-pacman -S 3ds-dev 3ds-curl 3ds-json-c"
+    echo "Installation: sudo dkp-pacman -S 3ds-dev"
     exit 1
 fi
