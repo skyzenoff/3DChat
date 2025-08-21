@@ -333,6 +333,26 @@ main {
     color: #b9bbbe;
 }
 
+/* Messages système */
+.message.system {
+    background-color: #7289da;
+    color: white;
+    text-align: center;
+    font-style: italic;
+    padding: 6px;
+    border-radius: 8px;
+    margin: 4px 0;
+}
+
+/* Bouton d'appel actif */
+.btn-call.active {
+    background-color: #f04747 !important;
+}
+
+.btn-call.active:hover {
+    background-color: #d73527 !important;
+}
+
 /* Login */
 .login-form {
     background-color: #36393f;

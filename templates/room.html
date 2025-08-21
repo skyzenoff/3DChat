@@ -6,7 +6,7 @@
     <title>{{ room.name }} - 3DChat</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
-<body>
+<body data-room-private="{{ 'true' if not room.is_public else 'false' }}">
     <div class="container">
         <header>
             <div class="room-header">
@@ -67,12 +67,6 @@
                     <button type="button" id="call-btn" class="btn btn-call" onclick="startVoiceCall()">📞 Appel</button>
                 </div>
                 
-                <script>
-                    // Afficher les contrôles vocaux seulement pour navigateurs modernes et salons privés
-                    if (isModernBrowser && {{ 'true' if not room.is_public else 'false' }}) {
-                        document.getElementById('voice-controls').style.display = 'flex';
-                    }
-                </script>
             </div>
         </div>
 

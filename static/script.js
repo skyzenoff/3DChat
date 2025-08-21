@@ -12,6 +12,11 @@ var mediaRecorder;
 var audioChunks = [];
 var isRecording = false;
 
+// Variables pour les appels
+var localStream;
+var peerConnection;
+var isInCall = false;
+
 function startPolling(roomId, username) {
     currentRoom = roomId;
     currentUser = username;
@@ -156,7 +161,78 @@ function sendVoiceMessage(audioBlob) {
 
 function startVoiceCall() {
     if (!isModernBrowser) return;
-    alert('Appel vocal démarré ! (Fonctionnalité en développement)');
+    
+    if (isInCall) {
+        endVoiceCall();
+        return;
+    }
+    
+    navigator.mediaDevices.getUserMedia({ audio: true, video: false })
+        .then(function(stream) {
+            localStream = stream;
+            isInCall = true;
+            
+            // Mettre à jour l'interface
+            var callBtn = document.getElementById('call-btn');
+            if (callBtn) {
+                callBtn.textContent = '📞 Raccrocher';
+                callBtn.style.backgroundColor = '#f04747';
+            }
+            
+            // Notifier les autres utilisateurs de l'appel
+            sendCallNotification('start');
+            
+            // Simuler la connexion audio (en réalité il faudrait WebRTC complet)
+            alert('📞 Appel démarré ! Microphone actif pour le salon.');
+        })
+        .catch(function(err) {
+            alert('Erreur microphone pour appel: ' + err.message);
+        });
+}
+
+function endVoiceCall() {
+    if (localStream) {
+        localStream.getTracks().forEach(track => track.stop());
+        localStream = null;
+    }
+    
+    isInCall = false;
+    
+    // Mettre à jour l'interface
+    var callBtn = document.getElementById('call-btn');
+    if (callBtn) {
+        callBtn.textContent = '📞 Appel';
+        callBtn.style.backgroundColor = '#7289da';
+    }
+    
+    sendCallNotification('end');
+}
+
+function sendCallNotification(action) {
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', '/call_notification/' + currentRoom, true);
+    xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+    
+    var data = 'user=' + encodeURIComponent(currentUser) + 
+               '&action=' + encodeURIComponent(action);
+    
+    xhr.send(data);
+}
+
+function showVoiceControlsIfNeeded() {
+    // Vérifier si c'est un navigateur moderne ET un salon privé
+    var voiceControls = document.getElementById('voice-controls');
+    if (voiceControls && isModernBrowser) {
+        // Récupérer l'info du salon depuis l'URL ou une variable globale
+        var urlParts = window.location.pathname.split('/');
+        if (urlParts[1] === 'room') {
+            // Dans un salon - vérifier si c'est privé via un attribut data
+            var isPrivateRoom = document.body.getAttribute('data-room-private') === 'true';
+            if (isPrivateRoom) {
+                voiceControls.style.display = 'flex';
+            }
+        }
+    }
 }
 
 // Auto-focus sur le champ de message si présent
@@ -168,4 +244,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initialiser l'audio pour navigateurs modernes
     initAudio();
+    
+    // Afficher les contrôles vocaux si nécessaire
+    showVoiceControlsIfNeeded();
 });

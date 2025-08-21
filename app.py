@@ -285,5 +285,32 @@ def send_voice(room_id):
     
     return 'OK', 200
 
+@app.route('/call_notification/<room_id>', methods=['POST'])
+def call_notification(room_id):
+    username = request.form.get('user')
+    action = request.form.get('action')  # 'start' ou 'end'
+    
+    if not username or username not in connected_users or room_id not in rooms:
+        return 'Error', 400
+    
+    # Vérifier que c'est un salon privé
+    if rooms[room_id]['is_public']:
+        return 'Appels disponibles uniquement dans les salons privés', 403
+    
+    if action == 'start':
+        message_text = f'📢 {username} a démarré un appel vocal'
+    else:
+        message_text = f'📢 {username} a terminé l\'appel vocal'
+    
+    message = {
+        'username': 'Système',
+        'text': message_text,
+        'type': 'system',
+        'timestamp': datetime.datetime.now().strftime('%H:%M')
+    }
+    rooms[room_id]['messages'].append(message)
+    
+    return 'OK', 200
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
