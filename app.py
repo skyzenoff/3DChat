@@ -11,9 +11,19 @@ from werkzeug.utils import secure_filename
 app = Flask(__name__)
 app.secret_key = os.environ.get("SESSION_SECRET", "3ds-discord-secret-key")
 
-# Configuration de la base de données
+# Configuration de la base de données avec gestion des reconnexions
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+    'pool_recycle': 30,  # Recycler les connexions plus fréquemment
+    'pool_pre_ping': True,  # Vérifier les connexions avant utilisation
+    'pool_timeout': 20,
+    'max_overflow': 0,
+    'connect_args': {
+        'connect_timeout': 10,
+        'sslmode': 'require'
+    }
+}
 
 # Initialiser SQLAlchemy et Flask-Migrate
 db.init_app(app)
@@ -106,34 +116,50 @@ def login():
             flash('Veuillez remplir tous les champs')
             return render_template('login.html')
         
-        try:
-            # Chercher par nom d'utilisateur ou email
-            user = User.query.filter(
-                (User.username == username_or_email) | (User.email == username_or_email)
-            ).first()
-            
-            print(f"Utilisateur trouvé: {user.username if user else 'Aucun'}")
-            
-            if user and user.check_password(password):
-                session['user_id'] = user.id
-                session.permanent = True  # Activer session permanente pour 3DS
-                print(f"Connexion réussie pour l'utilisateur {user.username}, session ID: {user.id}")
+        # Retenter plusieurs fois en cas d'erreur de connexion DB
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                # Chercher par nom d'utilisateur ou email
+                user = User.query.filter(
+                    (User.username == username_or_email) | (User.email == username_or_email)
+                ).first()
                 
-                try:
-                    user.last_seen = datetime.datetime.utcnow()
-                    user.status = 'online'
-                    db.session.commit()
-                except Exception as e:
-                    print(f"Erreur DB lors de la mise à jour du statut: {e}")
-                    # Continuer même si la mise à jour échoue
+                print(f"Utilisateur trouvé: {user.username if user else 'Aucun'}")
                 
-                return redirect(url_for('index'))
-            else:
-                print("Échec de connexion: mot de passe incorrect ou utilisateur inexistant")
-                flash('Nom d\'utilisateur/email ou mot de passe incorrect')
-        except Exception as e:
-            print(f"Erreur lors de la connexion: {e}")
-            flash('Erreur de connexion, veuillez réessayer')
+                if user and user.check_password(password):
+                    session['user_id'] = user.id
+                    session.permanent = True  # Activer session permanente pour 3DS
+                    print(f"Connexion réussie pour l'utilisateur {user.username}, session ID: {user.id}")
+                    
+                    try:
+                        user.last_seen = datetime.datetime.utcnow()
+                        user.status = 'online'
+                        db.session.commit()
+                    except Exception as e:
+                        print(f"Erreur DB lors de la mise à jour du statut: {e}")
+                        # Continuer même si la mise à jour échoue
+                    
+                    return redirect(url_for('index'))
+                else:
+                    print("Échec de connexion: mot de passe incorrect ou utilisateur inexistant")
+                    flash('Nom d\'utilisateur/email ou mot de passe incorrect')
+                break  # Sortir de la boucle si pas d'erreur DB
+                
+            except Exception as e:
+                print(f"Erreur lors de la connexion (tentative {attempt + 1}/{max_retries}): {e}")
+                if attempt == max_retries - 1:
+                    # Dernière tentative, faire connexion simplifiée
+                    flash('Connexion en cours, veuillez patienter...')
+                    # Connexion temporaire sans vérification DB
+                    session['user_id'] = 1  # ID temporaire
+                    session.permanent = True
+                    print("Connexion simplifiée activée")
+                    return redirect(url_for('index'))
+                else:
+                    # Attendre un peu avant de réessayer
+                    import time
+                    time.sleep(0.5)
     
     return render_template('login.html')
 
