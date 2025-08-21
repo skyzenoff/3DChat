@@ -392,6 +392,106 @@ def send_private_message(username):
     
     return redirect(url_for('private_chat', username=username))
 
+@app.route('/create_room', methods=['GET', 'POST'])
+@login_required
+def create_room():
+    user = get_current_user()
+    if not user:
+        return redirect(url_for('login'))
+    
+    if request.method == 'POST':
+        room_name = request.form.get('room_name', '').strip()
+        is_public = request.form.get('visibility') == 'public'
+        
+        if room_name and len(room_name) <= 30:
+            # Générer un code pour les salons privés
+            room_code = None if is_public else generate_room_code()
+            
+            room = Room(
+                name=room_name,
+                is_public=is_public,
+                code=room_code,
+                owner_id=user.id
+            )
+            db.session.add(room)
+            db.session.commit()
+            
+            # Ajouter le créateur comme membre
+            member = RoomMember(room_id=room.id, user_id=user.id)
+            db.session.add(member)
+            db.session.commit()
+            
+            if not is_public:
+                flash(f'Salon privé créé ! Code d\'accès : {room_code}')
+            
+            return redirect(url_for('room', room_id=room.id))
+        else:
+            flash('Nom de salon invalide (max 30 caractères)')
+    
+    return render_template('create_room.html', user=user, username=user.username)
+
+@app.route('/join_private', methods=['GET', 'POST'])
+@login_required
+def join_private():
+    user = get_current_user()
+    if not user:
+        return redirect(url_for('login'))
+    
+    if request.method == 'POST':
+        room_code = request.form.get('room_code', '').strip()
+        
+        # Chercher le salon avec ce code
+        room = Room.query.filter_by(code=room_code, is_public=False).first()
+        if room:
+            return redirect(url_for('room', room_id=room.id))
+        
+        flash('Code de salon invalide')
+    
+    return render_template('join_private.html', user=user, username=user.username)
+
+@app.route('/send_message/<int:room_id>', methods=['POST'])
+@login_required
+def send_message(room_id):
+    user = get_current_user()
+    if not user:
+        return redirect(url_for('login'))
+    
+    room = Room.query.get_or_404(room_id)
+    
+    # Vérifier l'accès au salon
+    if not room.is_public:
+        member = RoomMember.query.filter_by(room_id=room.id, user_id=user.id).first()
+        if not member and room.owner_id != user.id:
+            flash('Accès refusé à ce salon privé')
+            return redirect(url_for('index'))
+    
+    content = request.form.get('message', '').strip()
+    if content and len(content) <= 500:
+        message = RoomMessage(
+            room_id=room.id,
+            user_id=user.id,
+            content=content
+        )
+        db.session.add(message)
+        db.session.commit()
+    
+    return redirect(url_for('room', room_id=room_id))
+
+@app.route('/leave_room/<int:room_id>')
+@login_required
+def leave_room(room_id):
+    user = get_current_user()
+    if not user:
+        return redirect(url_for('login'))
+    
+    # Supprimer l'utilisateur du salon
+    member = RoomMember.query.filter_by(room_id=room_id, user_id=user.id).first()
+    if member:
+        db.session.delete(member)
+        db.session.commit()
+    
+    return redirect(url_for('index'))
+
 # Routes pour les salons
 @app.route('/room/<int:room_id>')
 @login_required
@@ -422,11 +522,26 @@ def room(room_id):
     # Récupérer les membres
     members = db.session.query(User).join(RoomMember).filter(RoomMember.room_id == room.id).all()
     
+    # Préparer les données pour le template
+    users_list = [member.username for member in members]
+    messages_formatted = []
+    
+    for msg in messages:
+        messages_formatted.append({
+            'username': msg.user.username,
+            'text': msg.content,
+            'timestamp': msg.created_at.strftime('%H:%M'),
+            'type': msg.message_type
+        })
+    
     return render_template('room.html', 
                          room=room, 
-                         messages=messages,
+                         messages=messages_formatted,
                          members=members,
-                         user=user)
+                         users=users_list,
+                         user=user,
+                         username=user.username,
+                         room_id=room.id)
 
 # Initialisation de la base de données
 def init_db():
