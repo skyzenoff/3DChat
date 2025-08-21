@@ -1,8 +1,8 @@
-modules = ["web", "python-3.11", "nodejs-20"]
+modules = ["python-3.11", "web", "c-clang14", "nodejs-20"]
 
 [nix]
 channel = "stable-25_05"
-packages = ["openssl", "postgresql", "wget", "git", "cmake"]
+packages = ["cmake", "git", "openssl", "postgresql", "wget"]
 
 [deployment]
 deploymentTarget = "autoscale"

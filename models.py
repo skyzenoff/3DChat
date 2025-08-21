@@ -1,10 +1,9 @@
 from datetime import datetime
-from flask_sqlalchemy import SQLAlchemy
+from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
+from app import db
 
-db = SQLAlchemy()
-
-class User(db.Model):
+class User(UserMixin, db.Model):
     __tablename__ = 'users'
     
     id = db.Column(db.Integer, primary_key=True)
@@ -73,10 +72,9 @@ class Friendship(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     requester_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     addressee_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    status = db.Column(db.String(10), default='pending')  # pending/accepted/blocked
+    status = db.Column(db.String(10), default='pending')  # pending/accepted/declined
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
-    __table_args__ = (db.UniqueConstraint('requester_id', 'addressee_id', name='unique_friendship'),)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 class PrivateMessage(db.Model):
     __tablename__ = 'private_messages'
@@ -85,7 +83,6 @@ class PrivateMessage(db.Model):
     sender_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     receiver_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     content = db.Column(db.Text, nullable=False)
-    message_type = db.Column(db.String(10), default='text')  # text/image/voice
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     is_read = db.Column(db.Boolean, default=False)
 
@@ -93,21 +90,35 @@ class Room(db.Model):
     __tablename__ = 'rooms'
     
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(30), nullable=False)
+    name = db.Column(db.String(100), nullable=False)
+    description = db.Column(db.Text, default='')
+    owner_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     is_public = db.Column(db.Boolean, default=True)
-    code = db.Column(db.String(6))  # Code pour salons privés
-    owner_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    join_code = db.Column(db.String(6), unique=True)  # Code pour rejoindre un salon privé
+    max_members = db.Column(db.Integer, default=50)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     # Relations
-    messages = db.relationship('RoomMessage', backref='room', lazy='dynamic', cascade='all, delete-orphan')
-    members = db.relationship('RoomMember', backref='room', lazy='dynamic', cascade='all, delete-orphan')
+    messages = db.relationship('RoomMessage', backref='room', lazy='dynamic')
+    members = db.relationship('RoomMember', backref='room', lazy='dynamic')
     
     def get_member_count(self):
         return self.members.count()
     
-    def get_recent_messages(self, limit=20):
-        return list(reversed(self.messages.order_by(RoomMessage.created_at.desc()).limit(limit).all()))
+    def get_message_count(self):
+        return self.messages.count()
+    
+    def is_member(self, user):
+        return self.members.filter_by(user_id=user.id).first() is not None
+    
+    def add_member(self, user):
+        if not self.is_member(user):
+            member = RoomMember()
+            member.user_id = user.id
+            member.room_id = self.id
+            db.session.add(member)
+            return True
+        return False
 
 class RoomMessage(db.Model):
     __tablename__ = 'room_messages'
@@ -116,7 +127,6 @@ class RoomMessage(db.Model):
     room_id = db.Column(db.Integer, db.ForeignKey('rooms.id'), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     content = db.Column(db.Text, nullable=False)
-    message_type = db.Column(db.String(10), default='text')  # text/image/voice/system
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 class RoomMember(db.Model):
@@ -126,5 +136,7 @@ class RoomMember(db.Model):
     room_id = db.Column(db.Integer, db.ForeignKey('rooms.id'), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     joined_at = db.Column(db.DateTime, default=datetime.utcnow)
+    role = db.Column(db.String(20), default='member')  # member/moderator
     
+    # Contrainte d'unicité pour éviter les doublons
     __table_args__ = (db.UniqueConstraint('room_id', 'user_id', name='unique_room_member'),)
