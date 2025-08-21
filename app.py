@@ -113,6 +113,9 @@ def room(room_id):
     messages = rooms[room_id]['messages'][-20:]
     room_users = list(users_in_rooms[room_id])
     
+    # Debug temporaire
+    print(f"DEBUG: Room data for {room_id}: {rooms[room_id]}")
+    
     return render_template('room.html', 
                          room=rooms[room_id], 
                          room_id=room_id,

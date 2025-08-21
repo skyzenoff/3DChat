@@ -10,7 +10,11 @@
     <div class="container">
         <header>
             <div class="room-header">
-                <h1>{{ room.name }}{% if room.code %} <span class="room-code">Code: {{ room.code }}</span>{% endif %}</h1>
+                <h1>{{ room.name }}
+                {% if room.code and room.code != None %}
+                    <span class="room-code">Code: {{ room.code }}</span>
+                {% endif %}
+                </h1>
             </div>
             <div class="room-controls">
                 <a href="{{ url_for('index', user=username) }}" class="btn btn-small">Retour</a>
