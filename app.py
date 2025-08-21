@@ -312,6 +312,11 @@ def edit_profile():
         
         db.session.commit()
         flash('Profil mis à jour !')
+        
+        # Préserver le paramètre utilisateur pour 3DS
+        user_param = request.args.get('user')
+        if user_param:
+            return redirect(url_for('profile', user=user_param))
         return redirect(url_for('profile'))
     
     return render_template('edit_profile.html', user=user)
