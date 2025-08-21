@@ -9,7 +9,9 @@
 <body>
     <div class="container">
         <header>
-            <h1>{{ room.name }}</h1>
+            <div class="room-header">
+                <h1>{{ room.name }}{% if room.code %} <span class="room-code">Code: {{ room.code }}</span>{% endif %}</h1>
+            </div>
             <div class="room-controls">
                 <a href="{{ url_for('index', user=username) }}" class="btn btn-small">Retour</a>
                 <a href="{{ url_for('leave_room', room_id=room_id, user=username) }}" class="btn btn-small">Quitter</a>
