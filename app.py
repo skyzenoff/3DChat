@@ -169,14 +169,26 @@ def get_messages(room_id):
                 🎤 <audio controls><source src="{audio_src}" type="audio/wav"></audio>
             </div>'''
         elif msg.get('type') == 'image':
-            # Message image
-            image_src = f"data:{msg['mime_type']};base64,{msg['image_data']}"
-            html += f'''<div class="message image-message">
-                <span class="author">{msg["username"]}</span> 
-                <span class="time">{msg["timestamp"]}</span><br>
-                📷 {msg.get("filename", "image")}<br>
-                <img src="{image_src}" alt="Image" onclick="showImageModal(this.src)">
-            </div>'''
+            # Message image - différent selon le navigateur
+            user_agent = request.headers.get('User-Agent', '')
+            is_3ds = 'Nintendo 3DS' in user_agent
+            
+            if is_3ds:
+                # 3DS : juste le nom du fichier sans image
+                html += f'''<div class="message">
+                    <span class="author">{msg["username"]}</span> 
+                    <span class="time">{msg["timestamp"]}</span><br>
+                    📷 Image partagée: {msg.get("filename", "image")}
+                </div>'''
+            else:
+                # PC/Mobile : affichage complet avec image
+                image_src = f"data:{msg['mime_type']};base64,{msg['image_data']}"
+                html += f'''<div class="message image-message">
+                    <span class="author">{msg["username"]}</span> 
+                    <span class="time">{msg["timestamp"]}</span><br>
+                    📷 {msg.get("filename", "image")}<br>
+                    <img src="{image_src}" alt="Image" onclick="showImageModal(this.src)">
+                </div>'''
         elif msg.get('type') == 'system':
             # Message système
             html += f'<div class="message system"><span class="time">{msg["timestamp"]}</span><br>{msg.get("text", "")}</div>'

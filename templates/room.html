@@ -43,13 +43,24 @@
                                 🎤 <audio controls><source src="data:audio/wav;base64,{{ message.audio_data }}" type="audio/wav"></audio>
                             </div>
                         {% elif message.type == 'image' %}
-                            <div class="message image-message">
-                                <span class="author">{{ message.username }}</span>
-                                <span class="time">{{ message.timestamp }}</span>
-                                <br>
-                                📷 {{ message.filename }}<br>
-                                <img src="data:{{ message.mime_type }};base64,{{ message.image_data }}" alt="Image" onclick="showImageModal(this.src)">
-                            </div>
+                            {% if request.headers.get('User-Agent', '') and 'Nintendo 3DS' in request.headers.get('User-Agent', '') %}
+                                <!-- 3DS : juste le nom du fichier -->
+                                <div class="message">
+                                    <span class="author">{{ message.username }}</span>
+                                    <span class="time">{{ message.timestamp }}</span>
+                                    <br>
+                                    📷 Image partagée: {{ message.filename }}
+                                </div>
+                            {% else %}
+                                <!-- PC/Mobile : affichage complet -->
+                                <div class="message image-message">
+                                    <span class="author">{{ message.username }}</span>
+                                    <span class="time">{{ message.timestamp }}</span>
+                                    <br>
+                                    📷 {{ message.filename }}<br>
+                                    <img src="data:{{ message.mime_type }};base64,{{ message.image_data }}" alt="Image" onclick="showImageModal(this.src)">
+                                </div>
+                            {% endif %}
                         {% elif message.type == 'system' %}
                             <div class="message system">
                                 <span class="time">{{ message.timestamp }}</span>
@@ -90,17 +101,20 @@
         </footer>
     </div>
 
-    <!-- Modal pour agrandir les images -->
+    <!-- Modal pour agrandir les images (PC/Mobile seulement) -->
+    {% if not (request.headers.get('User-Agent', '') and 'Nintendo 3DS' in request.headers.get('User-Agent', '')) %}
     <div class="image-modal" id="image-modal" onclick="hideImageModal()">
         <img id="modal-image" src="" alt="Image agrandie">
     </div>
+    {% endif %}
 
     <script src="{{ url_for('static', filename='script.js') }}"></script>
     <script>
         // Démarrer le polling pour ce salon
         startPolling('{{ room_id }}', '{{ username }}');
         
-        // Fonctions pour la modal d'images
+        {% if not (request.headers.get('User-Agent', '') and 'Nintendo 3DS' in request.headers.get('User-Agent', '')) %}
+        // Fonctions pour la modal d'images (PC/Mobile seulement)
         function showImageModal(src) {
             var modal = document.getElementById('image-modal');
             var img = document.getElementById('modal-image');
@@ -112,6 +126,7 @@
             var modal = document.getElementById('image-modal');
             modal.style.display = 'none';
         }
+        {% endif %}
     </script>
 </body>
 </html>

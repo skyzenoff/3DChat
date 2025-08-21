@@ -279,15 +279,25 @@ function showVoiceControlsIfNeeded() {
         if (urlParts[1] === 'room') {
             var isPrivateRoom = document.body.getAttribute('data-room-private') === 'true';
             
-            // Toujours afficher le bouton image
-            voiceControls.style.display = 'flex';
-            
-            // Masquer les boutons vocaux sur 3DS ou salons publics
+            // Masquer les boutons sur 3DS
             var voiceBtn = document.getElementById('voice-btn');
             var callBtn = document.getElementById('call-btn');
+            var imageBtn = document.getElementById('image-btn');
             
-            if (voiceBtn) voiceBtn.style.display = (isModernBrowser && isPrivateRoom) ? 'inline-block' : 'none';
-            if (callBtn) callBtn.style.display = (isModernBrowser && isPrivateRoom) ? 'inline-block' : 'none';
+            if (is3DS) {
+                // 3DS : pas de fonctionnalités multimédias
+                voiceControls.style.display = 'none';
+            } else {
+                // PC/Mobile : afficher le panneau
+                voiceControls.style.display = 'flex';
+                
+                // Masquer les boutons vocaux dans les salons publics
+                if (voiceBtn) voiceBtn.style.display = (isModernBrowser && isPrivateRoom) ? 'inline-block' : 'none';
+                if (callBtn) callBtn.style.display = (isModernBrowser && isPrivateRoom) ? 'inline-block' : 'none';
+                
+                // Image disponible sur PC/Mobile dans tous les salons
+                if (imageBtn) imageBtn.style.display = 'inline-block';
+            }
         }
     }
 }
