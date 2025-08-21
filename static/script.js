@@ -17,9 +17,8 @@ var localStream;
 var peerConnection;
 var isInCall = false;
 
-// Variables pour le partage d'écran
-var screenStream;
-var isSharing = false;
+// Variables pour l'envoi d'images
+var imageInput;
 
 function startPolling(roomId, username) {
     currentRoom = roomId;
@@ -223,120 +222,72 @@ function sendCallNotification(action) {
     xhr.send(data);
 }
 
-function startScreenShare() {
-    if (!isModernBrowser) return;
-    
-    if (isSharing) {
-        stopScreenShare();
-        return;
-    }
-    
-    if (!navigator.mediaDevices.getDisplayMedia) {
-        alert('Partage d\'écran non supporté sur ce navigateur');
-        return;
-    }
-    
-    navigator.mediaDevices.getDisplayMedia({ video: true, audio: true })
-        .then(function(stream) {
-            screenStream = stream;
-            isSharing = true;
-            
-            // Mettre à jour l'interface
-            var shareBtn = document.getElementById('share-btn');
-            if (shareBtn) {
-                shareBtn.textContent = '🔴 Arrêter';
-                shareBtn.style.backgroundColor = '#f04747';
-            }
-            
-            // Afficher le stream localement
-            showLocalScreen(stream);
-            
-            // Notifier les autres utilisateurs
-            sendScreenNotification('start');
-            
-            // Écouter la fin du partage (fermeture de l'onglet de partage)
-            stream.getVideoTracks()[0].addEventListener('ended', function() {
-                stopScreenShare();
-            });
-        })
-        .catch(function(err) {
-            alert('Erreur partage d\'écran: ' + err.message);
-        });
-}
-
-function stopScreenShare() {
-    if (screenStream) {
-        screenStream.getTracks().forEach(track => track.stop());
-        screenStream = null;
-    }
-    
-    isSharing = false;
-    
-    // Mettre à jour l'interface
-    var shareBtn = document.getElementById('share-btn');
-    if (shareBtn) {
-        shareBtn.textContent = '🖥️ Partager';
-        shareBtn.style.backgroundColor = '#7289da';
-    }
-    
-    // Cacher l'aperçu local
-    hideLocalScreen();
-    
-    sendScreenNotification('stop');
-}
-
-function showLocalScreen(stream) {
-    var videoContainer = document.getElementById('screen-preview');
-    if (!videoContainer) {
-        // Créer le conteneur d'aperçu
-        videoContainer = document.createElement('div');
-        videoContainer.id = 'screen-preview';
-        videoContainer.className = 'screen-preview';
-        videoContainer.innerHTML = '<h4>Votre écran partagé :</h4><video id="local-screen" autoplay muted></video>';
+function selectImage() {
+    if (!imageInput) {
+        // Créer l'input file s'il n'existe pas
+        imageInput = document.createElement('input');
+        imageInput.type = 'file';
+        imageInput.accept = 'image/*';
+        imageInput.style.display = 'none';
+        document.body.appendChild(imageInput);
         
-        var chatPanel = document.querySelector('.chat-panel');
-        if (chatPanel) {
-            chatPanel.insertBefore(videoContainer, chatPanel.firstChild);
-        }
+        imageInput.onchange = function() {
+            if (this.files && this.files[0]) {
+                sendImageMessage(this.files[0]);
+            }
+        };
     }
     
-    var video = document.getElementById('local-screen');
-    if (video) {
-        video.srcObject = stream;
-        videoContainer.style.display = 'block';
-    }
+    imageInput.click();
 }
 
-function hideLocalScreen() {
-    var videoContainer = document.getElementById('screen-preview');
-    if (videoContainer) {
-        videoContainer.style.display = 'none';
+function sendImageMessage(file) {
+    // Vérifier la taille du fichier (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+        alert('Image trop grande (max 5MB)');
+        return;
     }
-}
-
-function sendScreenNotification(action) {
+    
+    var formData = new FormData();
+    formData.append('user', currentUser);
+    formData.append('image', file);
+    
     var xhr = new XMLHttpRequest();
-    xhr.open('POST', '/screen_notification/' + currentRoom, true);
-    xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+    xhr.open('POST', '/send_image/' + currentRoom, true);
     
-    var data = 'user=' + encodeURIComponent(currentUser) + 
-               '&action=' + encodeURIComponent(action);
+    xhr.onload = function() {
+        if (xhr.status === 200) {
+            // Image envoyée avec succès
+            updateMessages();
+        } else {
+            alert('Erreur lors de l\'envoi de l\'image');
+        }
+    };
     
-    xhr.send(data);
+    xhr.onerror = function() {
+        alert('Erreur réseau lors de l\'envoi de l\'image');
+    };
+    
+    xhr.send(formData);
 }
 
 function showVoiceControlsIfNeeded() {
-    // Vérifier si c'est un navigateur moderne ET un salon privé
+    // Vérifier si c'est un navigateur moderne
     var voiceControls = document.getElementById('voice-controls');
-    if (voiceControls && isModernBrowser) {
-        // Récupérer l'info du salon depuis l'URL ou une variable globale
+    if (voiceControls) {
         var urlParts = window.location.pathname.split('/');
         if (urlParts[1] === 'room') {
-            // Dans un salon - vérifier si c'est privé via un attribut data
             var isPrivateRoom = document.body.getAttribute('data-room-private') === 'true';
-            if (isPrivateRoom) {
-                voiceControls.style.display = 'flex';
-            }
+            
+            // Toujours afficher le bouton image
+            voiceControls.style.display = 'flex';
+            
+            // Masquer les boutons vocaux sur 3DS ou salons publics
+            var voiceBtn = document.getElementById('voice-btn');
+            var callBtn = document.getElementById('call-btn');
+            
+            if (voiceBtn) voiceBtn.style.display = (isModernBrowser && isPrivateRoom) ? 'inline-block' : 'none';
+            if (callBtn) callBtn.style.display = (isModernBrowser && isPrivateRoom) ? 'inline-block' : 'none';
         }
     }
 }

@@ -168,6 +168,15 @@ def get_messages(room_id):
                 <span class="time">{msg["timestamp"]}</span><br>
                 🎤 <audio controls><source src="{audio_src}" type="audio/wav"></audio>
             </div>'''
+        elif msg.get('type') == 'image':
+            # Message image
+            image_src = f"data:{msg['mime_type']};base64,{msg['image_data']}"
+            html += f'''<div class="message image-message">
+                <span class="author">{msg["username"]}</span> 
+                <span class="time">{msg["timestamp"]}</span><br>
+                📷 {msg.get("filename", "image")}<br>
+                <img src="{image_src}" alt="Image" onclick="showImageModal(this.src)">
+            </div>'''
         elif msg.get('type') == 'system':
             # Message système
             html += f'<div class="message system"><span class="time">{msg["timestamp"]}</span><br>{msg.get("text", "")}</div>'
@@ -315,30 +324,47 @@ def call_notification(room_id):
     
     return 'OK', 200
 
-@app.route('/screen_notification/<room_id>', methods=['POST'])
-def screen_notification(room_id):
-    username = request.form.get('user')
-    action = request.form.get('action')  # 'start' ou 'stop'
+@app.route('/send_image/<room_id>', methods=['POST'])
+def send_image(room_id):
+    username = request.form.get('user') or request.args.get('user')
+    if not username or username not in connected_users:
+        return 'Non autorisé', 401
     
-    if not username or username not in connected_users or room_id not in rooms:
-        return 'Error', 400
+    if room_id not in rooms:
+        return 'Salon inexistant', 404
     
-    # Vérifier que c'est un salon privé
-    if rooms[room_id]['is_public']:
-        return 'Partage d\'\u00e9cran disponible uniquement dans les salons priv\u00e9s', 403
-    
-    if action == 'start':
-        message_text = f'🖥️ {username} partage son écran'
-    else:
-        message_text = f'🖥️ {username} a arrêté le partage d\'\u00e9cran'
-    
-    message = {
-        'username': 'Système',
-        'text': message_text,
-        'type': 'system',
-        'timestamp': datetime.datetime.now().strftime('%H:%M')
-    }
-    rooms[room_id]['messages'].append(message)
+    image_file = request.files.get('image')
+    if image_file and image_file.filename:
+        # Vérifier que c'est une image
+        allowed_extensions = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+        file_extension = image_file.filename.rsplit('.', 1)[1].lower()
+        
+        if file_extension not in allowed_extensions:
+            return 'Format d\'image non supporté', 400
+        
+        # Encoder l'image en base64 pour le stockage en mémoire
+        image_data = image_file.read()
+        
+        # Vérifier la taille (max 5MB)
+        if len(image_data) > 5 * 1024 * 1024:
+            return 'Image trop grande (max 5MB)', 400
+        
+        image_base64 = base64.b64encode(image_data).decode('utf-8')
+        mime_type = f"image/{file_extension}"
+        
+        message = {
+            'username': username,
+            'type': 'image',
+            'image_data': image_base64,
+            'mime_type': mime_type,
+            'filename': image_file.filename,
+            'timestamp': datetime.datetime.now().strftime('%H:%M')
+        }
+        rooms[room_id]['messages'].append(message)
+        
+        # Garder seulement les 50 derniers messages en mémoire
+        if len(rooms[room_id]['messages']) > 50:
+            rooms[room_id]['messages'] = rooms[room_id]['messages'][-50:]
     
     return 'OK', 200
 

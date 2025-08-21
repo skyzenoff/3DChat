@@ -42,6 +42,14 @@
                                 <br>
                                 🎤 <audio controls><source src="data:audio/wav;base64,{{ message.audio_data }}" type="audio/wav"></audio>
                             </div>
+                        {% elif message.type == 'image' %}
+                            <div class="message image-message">
+                                <span class="author">{{ message.username }}</span>
+                                <span class="time">{{ message.timestamp }}</span>
+                                <br>
+                                📷 {{ message.filename }}<br>
+                                <img src="data:{{ message.mime_type }};base64,{{ message.image_data }}" alt="Image" onclick="showImageModal(this.src)">
+                            </div>
                         {% elif message.type == 'system' %}
                             <div class="message system">
                                 <span class="time">{{ message.timestamp }}</span>
@@ -67,11 +75,11 @@
                     </div>
                 </form>
                 
-                <!-- Contrôles vocaux (uniquement navigateurs modernes) -->
+                <!-- Contrôles multimédias -->
                 <div class="voice-controls" id="voice-controls" style="display: none;">
                     <button type="button" id="voice-btn" class="btn btn-voice" onclick="startVoiceRecording()">🎤 Vocal</button>
                     <button type="button" id="call-btn" class="btn btn-call" onclick="startVoiceCall()">📞 Appel</button>
-                    <button type="button" id="share-btn" class="btn btn-share" onclick="startScreenShare()">🖥️ Partager</button>
+                    <button type="button" id="image-btn" class="btn btn-image" onclick="selectImage()">📷 Image</button>
                 </div>
                 
             </div>
@@ -82,10 +90,28 @@
         </footer>
     </div>
 
+    <!-- Modal pour agrandir les images -->
+    <div class="image-modal" id="image-modal" onclick="hideImageModal()">
+        <img id="modal-image" src="" alt="Image agrandie">
+    </div>
+
     <script src="{{ url_for('static', filename='script.js') }}"></script>
     <script>
         // Démarrer le polling pour ce salon
         startPolling('{{ room_id }}', '{{ username }}');
+        
+        // Fonctions pour la modal d'images
+        function showImageModal(src) {
+            var modal = document.getElementById('image-modal');
+            var img = document.getElementById('modal-image');
+            img.src = src;
+            modal.style.display = 'flex';
+        }
+        
+        function hideImageModal() {
+            var modal = document.getElementById('image-modal');
+            modal.style.display = 'none';
+        }
     </script>
 </body>
 </html>

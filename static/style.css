@@ -353,9 +353,9 @@ main {
     background-color: #d73527 !important;
 }
 
-/* Bouton de partage d'écran */
-.btn-share {
-    background-color: #7289da;
+/* Bouton d'image */
+.btn-image {
+    background-color: #43b581;
     color: white;
     padding: 8px 16px;
     border: none;
@@ -364,70 +364,52 @@ main {
     font-size: 12px;
 }
 
-.btn-share:hover {
-    background-color: #677bc4;
+.btn-image:hover {
+    background-color: #3ca374;
 }
 
-.btn-share.active {
-    background-color: #f04747 !important;
-}
-
-.btn-share.active:hover {
-    background-color: #d73527 !important;
-}
-
-/* Aperçu de partage d'écran */
-.screen-preview {
+/* Messages avec images */
+.image-message {
     background-color: #36393f;
-    padding: 8px;
-    border-radius: 4px;
-    margin-bottom: 8px;
-    display: none;
-}
-
-.screen-preview h4 {
-    color: #7289da;
-    font-size: 12px;
-    margin-bottom: 8px;
-    text-align: center;
-}
-
-.screen-preview video {
-    width: 100%;
-    max-width: 300px;
-    border-radius: 4px;
-    display: block;
-    margin: 0 auto;
-}
-
-/* Messages de partage d'écran */
-.screen-message {
-    background-color: #7289da;
     border-radius: 8px;
     padding: 8px;
     margin: 4px 0;
-    text-align: center;
-    color: white;
 }
 
-.screen-viewer {
-    background-color: #36393f;
-    padding: 8px;
+.image-message img {
+    max-width: 250px;
+    max-height: 200px;
     border-radius: 4px;
-    margin: 8px 0;
-    text-align: center;
+    cursor: pointer;
+    transition: transform 0.2s ease;
 }
 
-.screen-viewer h4 {
-    color: #43b581;
-    font-size: 12px;
-    margin-bottom: 8px;
+.image-message img:hover {
+    transform: scale(1.05);
 }
 
-.screen-viewer video {
+/* Modal pour agrandir les images */
+.image-modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
     width: 100%;
-    max-width: 300px;
-    border-radius: 4px;
+    height: 100%;
+    background-color: rgba(0,0,0,0.8);
+    justify-content: center;
+    align-items: center;
+}
+
+.image-modal img {
+    max-width: 90%;
+    max-height: 90%;
+    border-radius: 8px;
+}
+
+.image-modal:active {
+    display: none;
 }
 
 /* Login */
