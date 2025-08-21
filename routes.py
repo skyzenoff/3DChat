@@ -23,6 +23,9 @@ class TempUser:
     
     def get_friends(self):
         return []
+    
+    def is_friend_with(self, user):
+        return False
 
 def get_current_user():
     """Récupère l'utilisateur connecté depuis la session ou l'URL"""
@@ -445,6 +448,238 @@ def create_room():
             flash('Nom de salon invalide (max 30 caractères)')
     
     return render_template('create_room.html', user=user)
+
+@app.route('/join_private', methods=['GET', 'POST'])
+@login_required
+def join_private():
+    user = get_current_user()
+    if not user:
+        return redirect(url_for('login'))
+    
+    if request.method == 'POST':
+        room_code = request.form.get('room_code', '').strip()
+        
+        try:
+            # Chercher le salon avec ce code
+            room = Room.query.filter_by(join_code=room_code, is_public=False).first()
+            if room:
+                return redirect(url_for('room', room_id=room.id))
+            else:
+                flash('Code de salon invalide')
+        except Exception as e:
+            print(f"Erreur recherche salon: {e}")
+            flash('Erreur lors de la recherche du salon')
+    
+    return render_template('join_private.html', user=user)
+
+@app.route('/add_friend', methods=['POST'])
+@login_required
+def add_friend():
+    user = get_current_user()
+    if not user or not hasattr(user, 'id'):
+        return redirect(url_for('login'))
+        
+    username = request.form.get('username', '').strip()
+    user_param = request.args.get('user')
+    
+    try:
+        if username == user.username:
+            flash('Vous ne pouvez pas vous ajouter vous-même')
+        else:
+            friend = User.query.filter_by(username=username).first()
+            if not friend:
+                flash('Utilisateur introuvable')
+            else:
+                # Vérifier s'il n'y a pas déjà une relation
+                existing = Friendship.query.filter(
+                    ((Friendship.requester_id == user.id) & (Friendship.addressee_id == friend.id)) |
+                    ((Friendship.requester_id == friend.id) & (Friendship.addressee_id == user.id))
+                ).first()
+                
+                if existing:
+                    if existing.status == 'accepted':
+                        flash('Vous êtes déjà amis')
+                    elif existing.status == 'pending':
+                        flash('Une demande d\'ami est déjà en attente')
+                else:
+                    # Créer la demande d'ami
+                    friendship = Friendship()
+                    friendship.requester_id = user.id
+                    friendship.addressee_id = friend.id
+                    friendship.status = 'pending'
+                    db.session.add(friendship)
+                    db.session.commit()
+                    flash(f'Demande d\'ami envoyée à {username}')
+    except Exception as e:
+        print(f"Erreur ajout ami: {e}")
+        flash('Erreur lors de l\'ajout d\'ami')
+    
+    if user_param:
+        return redirect(url_for('friends', user=user_param))
+    return redirect(url_for('friends'))
+
+@app.route('/accept_friend/<int:friendship_id>')
+@login_required
+def accept_friend(friendship_id):
+    user = get_current_user()
+    if not user or not hasattr(user, 'id'):
+        return redirect(url_for('login'))
+    
+    try:
+        friendship = Friendship.query.get(friendship_id)
+        if friendship and friendship.addressee_id == user.id:
+            friendship.status = 'accepted'
+            db.session.commit()
+            flash('Demande d\'ami acceptée')
+    except Exception as e:
+        print(f"Erreur acceptation ami: {e}")
+        flash('Erreur lors de l\'acceptation')
+    
+    return redirect(url_for('friends'))
+
+@app.route('/decline_friend/<int:friendship_id>')
+@login_required
+def decline_friend(friendship_id):
+    user = get_current_user()
+    if not user or not hasattr(user, 'id'):
+        return redirect(url_for('login'))
+    
+    try:
+        friendship = Friendship.query.get(friendship_id)
+        if friendship and friendship.addressee_id == user.id:
+            db.session.delete(friendship)
+            db.session.commit()
+            flash('Demande d\'ami refusée')
+    except Exception as e:
+        print(f"Erreur refus ami: {e}")
+        flash('Erreur lors du refus')
+    
+    return redirect(url_for('friends'))
+
+@app.route('/private_messages')
+@login_required
+def private_messages():
+    user = get_current_user()
+    if not user:
+        return redirect(url_for('login'))
+    
+    # Récupérer les amis pour la liste des conversations
+    friends = user.get_friends() if hasattr(user, 'get_friends') else []
+    
+    return render_template('private_messages.html', user=user, friends=friends)
+
+@app.route('/private_chat/<int:friend_id>')
+@login_required
+def private_chat(friend_id):
+    user = get_current_user()
+    if not user or not hasattr(user, 'id'):
+        return redirect(url_for('login'))
+    
+    try:
+        friend = User.query.get(friend_id)
+        if not friend or not user.is_friend_with(friend):
+            flash('Utilisateur introuvable ou pas dans votre liste d\'amis')
+            return redirect(url_for('private_messages'))
+        
+        # Récupérer les 50 derniers messages
+        messages = PrivateMessage.query.filter(
+            ((PrivateMessage.sender_id == user.id) & (PrivateMessage.receiver_id == friend.id)) |
+            ((PrivateMessage.sender_id == friend.id) & (PrivateMessage.receiver_id == user.id))
+        ).order_by(PrivateMessage.created_at.desc()).limit(50).all()[::-1]
+        
+        # Marquer les messages comme lus
+        PrivateMessage.query.filter(
+            PrivateMessage.sender_id == friend.id,
+            PrivateMessage.receiver_id == user.id,
+            PrivateMessage.is_read == False
+        ).update({'is_read': True})
+        db.session.commit()
+        
+        return render_template('private_chat.html', user=user, friend=friend, messages=messages)
+    except Exception as e:
+        print(f"Erreur chat privé: {e}")
+        flash('Erreur d\'accès au chat privé')
+        return redirect(url_for('private_messages'))
+
+@app.route('/send_private_message/<int:friend_id>', methods=['POST'])
+@login_required
+def send_private_message(friend_id):
+    user = get_current_user()
+    if not user or not hasattr(user, 'id'):
+        return redirect(url_for('login'))
+    
+    try:
+        friend = User.query.get(friend_id)
+        if not friend or not user.is_friend_with(friend):
+            return redirect(url_for('private_messages'))
+        
+        message_text = request.form.get('message', '').strip()
+        if message_text and len(message_text) <= 500:
+            message = PrivateMessage()
+            message.sender_id = user.id
+            message.receiver_id = friend.id
+            message.content = message_text
+            db.session.add(message)
+            db.session.commit()
+        
+        return redirect(url_for('private_chat', friend_id=friend_id))
+    except Exception as e:
+        print(f"Erreur envoi message privé: {e}")
+        return redirect(url_for('private_chat', friend_id=friend_id))
+
+@app.route('/user_profile/<int:user_id>')
+@login_required
+def user_profile(user_id):
+    user = get_current_user()
+    if not user:
+        return redirect(url_for('login'))
+    
+    try:
+        profile_user = User.query.get(user_id)
+        if not profile_user:
+            flash('Utilisateur introuvable')
+            return redirect(url_for('index'))
+        
+        return render_template('user_profile.html', user=user, profile_user=profile_user)
+    except Exception as e:
+        print(f"Erreur profil utilisateur: {e}")
+        return redirect(url_for('index'))
+
+@app.route('/get_messages/<int:room_id>')
+def get_messages(room_id):
+    """Endpoint pour récupérer les nouveaux messages (polling pour 3DS)"""
+    user = get_current_user()
+    if not user:
+        return "[]"
+    
+    try:
+        room = Room.query.get(room_id)
+        if not room:
+            return "[]"
+        
+        # Récupérer les 20 derniers messages
+        messages = RoomMessage.query.filter_by(room_id=room_id).order_by(RoomMessage.created_at.desc()).limit(20).all()[::-1]
+        members = room.members.all()
+        
+        # Retourner du HTML simple plutôt que du JSON pour compatibilité 3DS
+        html = ""
+        for msg in messages:
+            username = msg.user.username if msg.user else 'Utilisateur'
+            timestamp = msg.created_at.strftime('%H:%M')
+            content = msg.content
+            html += f'<div class="message"><span class="author">{username}</span> <span class="time">{timestamp}</span><br>{content}</div>'
+        
+        # Ajouter la liste des utilisateurs
+        html += '<div id="users-list">'
+        for member in members:
+            if member.user:
+                html += f'<span class="user-badge">{member.user.username}</span> '
+        html += '</div>'
+        
+        return html
+    except Exception as e:
+        print(f"Erreur get_messages: {e}")
+        return ""
 
 # API endpoints pour 3DS homebrew
 @app.route('/api/rooms')
