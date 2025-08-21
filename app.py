@@ -536,12 +536,9 @@ def send_private_message(username):
         )
         db.session.add(message)
         db.session.commit()
+        return 'OK', 200
     
-    # Préserver le paramètre utilisateur pour 3DS
-    user_param = request.args.get('user')
-    if user_param:
-        return redirect(url_for('private_chat', username=username, user=user_param))
-    return redirect(url_for('private_chat', username=username))
+    return 'Erreur', 400
 
 @app.route('/get_private_messages/<username>')
 @login_required

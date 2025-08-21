@@ -35,10 +35,10 @@
             {% endfor %}
         </div>
 
-        <form class="message-form" method="POST" action="{{ url_for('send_private_message', username=friend.username) }}?user={{ user.username }}">
+        <form class="message-form" id="message-form" onsubmit="sendMessage(event)">
             <div class="form-group">
-                <input type="text" name="message" placeholder="Tapez votre message..." maxlength="500" required>
-                <button type="submit" class="btn btn-primary">Envoyer</button>
+                <input type="text" id="message-input" name="message" placeholder="Tapez votre message..." maxlength="500" required>
+                <button type="submit" class="btn btn-primary" id="send-btn">Envoyer</button>
             </div>
         </form>
     </div>
@@ -63,6 +63,41 @@
             };
             
             xhr.send();
+        }
+        
+        function sendMessage(event) {
+            event.preventDefault(); // Empêcher le rechargement de page
+            
+            var messageInput = document.getElementById('message-input');
+            var sendBtn = document.getElementById('send-btn');
+            var message = messageInput.value.trim();
+            
+            if (!message) return;
+            
+            // Désactiver le bouton temporairement
+            sendBtn.disabled = true;
+            sendBtn.textContent = 'Envoi...';
+            
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', '/send_private_message/{{ friend.username }}?user={{ user.username }}', true);
+            xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+            
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === 4) {
+                    // Réactiver le bouton
+                    sendBtn.disabled = false;
+                    sendBtn.textContent = 'Envoyer';
+                    
+                    if (xhr.status === 200) {
+                        // Vider le champ de message
+                        messageInput.value = '';
+                        // Mettre à jour les messages immédiatement
+                        updatePrivateMessages();
+                    }
+                }
+            };
+            
+            xhr.send('message=' + encodeURIComponent(message));
         }
         
         // Polling plus agressif pour 3DS
